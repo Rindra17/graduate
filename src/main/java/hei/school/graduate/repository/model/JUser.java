@@ -1,5 +1,6 @@
 package hei.school.graduate.repository.model;
 
+import hei.school.graduate.model.Role;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -23,9 +24,7 @@ import lombok.Setter;
 @Builder
 public class JUser {
 
-  @Id
-  @GeneratedValue
-  private UUID id;
+  @Id @GeneratedValue private UUID id;
 
   @Column(nullable = false)
   private String email;
@@ -42,10 +41,4 @@ public class JUser {
   private Role role;
 
   private String address;
-
-  public enum Role {
-    ADMIN,
-    STUDENT,
-    TEACHER
-  }
 }

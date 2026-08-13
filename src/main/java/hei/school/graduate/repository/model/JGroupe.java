@@ -23,9 +23,7 @@ import lombok.Setter;
 @Builder
 public class JGroupe {
 
-  @Id
-  @GeneratedValue
-  private UUID id;
+  @Id @GeneratedValue private UUID id;
 
   private String name;
 

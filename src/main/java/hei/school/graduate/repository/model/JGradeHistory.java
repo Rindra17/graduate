@@ -26,9 +26,7 @@ import lombok.Setter;
 @Builder
 public class JGradeHistory {
 
-  @Id
-  @GeneratedValue
-  private UUID id;
+  @Id @GeneratedValue private UUID id;
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "grade_id", nullable = false)

@@ -23,9 +23,7 @@ import lombok.Setter;
 @Builder
 public class JCourseGroup {
 
-  @Id
-  @GeneratedValue
-  private UUID id;
+  @Id @GeneratedValue private UUID id;
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "group_id", nullable = false)

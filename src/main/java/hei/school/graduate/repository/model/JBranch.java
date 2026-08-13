@@ -20,9 +20,7 @@ import lombok.Setter;
 @Builder
 public class JBranch {
 
-  @Id
-  @GeneratedValue
-  private UUID id;
+  @Id @GeneratedValue private UUID id;
 
   private String code;
 

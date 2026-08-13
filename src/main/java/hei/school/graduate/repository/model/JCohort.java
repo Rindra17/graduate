@@ -21,9 +21,7 @@ import lombok.Setter;
 @Builder
 public class JCohort {
 
-  @Id
-  @GeneratedValue
-  private UUID id;
+  @Id @GeneratedValue private UUID id;
 
   @Column(nullable = false)
   private String name;

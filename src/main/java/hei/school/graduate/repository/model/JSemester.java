@@ -24,9 +24,7 @@ import lombok.Setter;
 @Builder
 public class JSemester {
 
-  @Id
-  @GeneratedValue
-  private UUID id;
+  @Id @GeneratedValue private UUID id;
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "cohort_id", nullable = false)
