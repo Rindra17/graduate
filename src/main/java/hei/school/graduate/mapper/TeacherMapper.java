@@ -14,7 +14,7 @@ public class TeacherMapper {
   public Teacher toDomain(JTeacher entity) {
     if (entity == null) return null;
     return new Teacher(
-        entity.getId(), userMapper.toDomain(entity.getUser()), entity.getEmployeeNumber());
+        entity.getId(), userMapper.toDomain(entity.getUser()), entity.getReference());
   }
 
   public JTeacher toEntity(Teacher domain, String passwordHash) {
@@ -22,7 +22,7 @@ public class TeacherMapper {
     return JTeacher.builder()
         .id(domain.id())
         .user(userMapper.toEntity(domain.user(), passwordHash))
-        .employeeNumber(domain.employeeNumber())
+        .reference(domain.reference())
         .build();
   }
 }

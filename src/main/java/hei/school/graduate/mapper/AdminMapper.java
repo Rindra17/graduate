@@ -13,8 +13,7 @@ public class AdminMapper {
 
   public Admin toDomain(JAdmin entity) {
     if (entity == null) return null;
-    return new Admin(
-        entity.getId(), userMapper.toDomain(entity.getUser()), entity.getPermissionsLevel());
+    return new Admin(entity.getId(), userMapper.toDomain(entity.getUser()), entity.getReference());
   }
 
   public JAdmin toEntity(Admin domain, String passwordHash) {
@@ -22,7 +21,7 @@ public class AdminMapper {
     return JAdmin.builder()
         .id(domain.id())
         .user(userMapper.toEntity(domain.user(), passwordHash))
-        .permissionsLevel(domain.permissionsLevel())
+        .reference(domain.reference())
         .build();
   }
 }
