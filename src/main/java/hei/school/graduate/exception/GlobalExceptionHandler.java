@@ -1,16 +1,13 @@
 package hei.school.graduate.exception;
 
+import hei.school.graduate.exception.model.ExceptionBody;
 import jakarta.servlet.http.HttpServletRequest;
-
 import java.time.Instant;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
-
-import hei.school.graduate.exception.model.ExceptionBody;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
