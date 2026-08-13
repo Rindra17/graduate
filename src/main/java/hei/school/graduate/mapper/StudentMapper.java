@@ -16,7 +16,7 @@ public class StudentMapper {
     return new Student(
         entity.getId(),
         userMapper.toDomain(entity.getUser()),
-        entity.getStudentNumber(),
+        entity.getReference(),
         entity.getStatus());
   }
 
@@ -25,7 +25,7 @@ public class StudentMapper {
     return JStudent.builder()
         .id(domain.id())
         .user(userMapper.toEntity(domain.user(), passwordHash))
-        .studentNumber(domain.studentNumber())
+        .reference(domain.reference())
         .status(domain.status())
         .build();
   }
