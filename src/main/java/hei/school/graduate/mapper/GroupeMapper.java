@@ -1,4 +1,4 @@
-package hei.school.graduate.repository.mapper;
+package hei.school.graduate.mapper;
 
 import hei.school.graduate.model.Groupe;
 import hei.school.graduate.repository.model.JGroupe;
