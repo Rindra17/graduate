@@ -8,18 +8,21 @@ import org.springframework.stereotype.Component;
 public class UserMapper {
 
   public User toDomain(JUser entity) {
-    if (entity == null) return null;
+    if (entity == null)
+      return null;
     return new User(
         entity.getId(),
         entity.getEmail(),
         entity.getFirstname(),
         entity.getLastname(),
         entity.getRole(),
-        entity.getAddress());
+        entity.getAddress(),
+        entity.getPasswordHash());
   }
 
   public JUser toEntity(User domain, String passwordHash) {
-    if (domain == null) return null;
+    if (domain == null)
+      return null;
     return JUser.builder()
         .id(domain.id())
         .email(domain.email())
