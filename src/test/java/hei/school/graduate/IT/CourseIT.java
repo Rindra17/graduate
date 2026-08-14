@@ -39,7 +39,6 @@ class CourseIT extends FacadeIT {
 
   private static final String COURSES_URL = "/courses";
 
-  // UUIDs valides issus de tes fixtures pour les relations de course
   private static final UUID TEST_COHORT_ID =
       UUID.fromString("00000000-0000-0000-0000-000000000000");
   private static final UUID TEST_SEMESTER_ID =
@@ -92,10 +91,6 @@ class CourseIT extends FacadeIT {
     }
   }
 
-  // -------------------------------------------------------------------------
-  // GET /courses
-  // -------------------------------------------------------------------------
-
   @Test
   void getAllCourses_returns200AndList() {
     var response =
@@ -113,10 +108,6 @@ class CourseIT extends FacadeIT {
     assertEquals(UNAUTHORIZED, response.getStatusCode());
   }
 
-  // -------------------------------------------------------------------------
-  // GET /courses/{id}
-  // -------------------------------------------------------------------------
-
   @Test
   void getCourseById_notFound_returns404() {
     var randomId = UUID.randomUUID();
@@ -126,10 +117,6 @@ class CourseIT extends FacadeIT {
 
     assertEquals(NOT_FOUND, response.getStatusCode());
   }
-
-  // -------------------------------------------------------------------------
-  // POST /courses
-  // -------------------------------------------------------------------------
 
   @Test
   void createCourse_validRequest_returns200Or201() {
@@ -154,10 +141,6 @@ class CourseIT extends FacadeIT {
     assertEquals(FORBIDDEN, response.getStatusCode());
   }
 
-  // -------------------------------------------------------------------------
-  // PUT /courses/{id}
-  // -------------------------------------------------------------------------
-
   @Test
   void updateCourse_notFound_returns404() {
     var randomId = UUID.randomUUID();
@@ -173,10 +156,6 @@ class CourseIT extends FacadeIT {
     assertEquals(NOT_FOUND, response.getStatusCode());
   }
 
-  // -------------------------------------------------------------------------
-  // DELETE /courses/{id}
-  // -------------------------------------------------------------------------
-
   @Test
   void deleteCourse_notFound_returns404() {
     var randomId = UUID.randomUUID();
@@ -187,10 +166,6 @@ class CourseIT extends FacadeIT {
 
     assertEquals(NOT_FOUND, response.getStatusCode());
   }
-
-  // -------------------------------------------------------------------------
-  // TEACHERS MANAGEMENT
-  // -------------------------------------------------------------------------
 
   @Test
   void getTeachersByCourseId_notFound_returns404() {
@@ -235,10 +210,6 @@ class CourseIT extends FacadeIT {
 
     assertEquals(NOT_FOUND, response.getStatusCode());
   }
-
-  // -------------------------------------------------------------------------
-  // GROUPS & EXAMS
-  // -------------------------------------------------------------------------
 
   @Test
   void getGroupsByCourseId_notFound_returns404() {
@@ -288,10 +259,6 @@ class CourseIT extends FacadeIT {
     assertEquals(NOT_FOUND, response.getStatusCode());
   }
 
-  // -------------------------------------------------------------------------
-  // HELPER METHODS
-  // -------------------------------------------------------------------------
-
   private CourseRequest courseRequest(String code, String title, int credits) {
     return CourseRequest.builder()
         .semesterId(TEST_SEMESTER_ID)
@@ -321,11 +288,10 @@ class CourseIT extends FacadeIT {
   }
 
   private String tokenFor(Role role) {
-    // Utilise un email réel présent dans tes données de test (Flyway/fixtures)
     String email = (role == Role.ADMIN) ? "admin1@hei.school" : "student1@hei.school";
     var user =
         new CustomUserDetails(
-            new User(UUID.randomUUID(), email, "Course", "Tester", role, null, null));
+            new User(UUID.randomUUID(), email, "Course", "Tester", role, null, null, false, null));
     return jwtService.generateToken(user);
   }
 
