@@ -8,6 +8,7 @@ import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.HttpStatus.CREATED;
 import static org.springframework.http.HttpStatus.FORBIDDEN;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -145,7 +146,110 @@ class TeacherIT extends FacadeIT {
     assertFalse(teacher.containsKey("password"));
   }
 
-  private void registerTeacher(String email) {
+  @Test
+  void getTeacher_asAdmin_returnsTeacher() {
+    var id = registerTeacher("admin-view@example.com");
+
+    var response =
+        testRestTemplate.exchange(
+            TEACHERS_URL + "/" + id, GET, new HttpEntity<>(adminHeaders()), Map.class);
+
+    assertEquals(OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+    assertEquals(id.toString(), response.getBody().get("id"));
+    assertEquals("admin-view@example.com", response.getBody().get("email"));
+    assertNotNull(response.getBody().get("reference"));
+  }
+
+  @Test
+  void getTeacher_asOwner_returnsTeacher() {
+    var id = registerTeacher("owner-view@example.com");
+
+    var response =
+        testRestTemplate.exchange(
+            TEACHERS_URL + "/" + id, GET, new HttpEntity<>(teacherHeaders(id)), Map.class);
+
+    assertEquals(OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+    assertEquals(id.toString(), response.getBody().get("id"));
+    assertEquals("owner-view@example.com", response.getBody().get("email"));
+  }
+
+  @Test
+  void getTeacher_asOtherTeacher_returns403() {
+    var id = registerTeacher("other-view@example.com");
+
+    var response =
+        testRestTemplate.exchange(
+            TEACHERS_URL + "/" + id,
+            GET,
+            new HttpEntity<>(teacherHeaders(UUID.randomUUID())),
+            Map.class);
+
+    assertEquals(FORBIDDEN, response.getStatusCode());
+    assertNotNull(response.getBody());
+    assertEquals(403, response.getBody().get("status"));
+    assertEquals("Access denied", response.getBody().get("message"));
+  }
+
+  @Test
+  void getTeacher_asStudent_returns403() {
+    var id = registerTeacher("student-view@example.com");
+
+    var response =
+        testRestTemplate.exchange(
+            TEACHERS_URL + "/" + id, GET, new HttpEntity<>(nonAdminHeaders()), Map.class);
+
+    assertEquals(FORBIDDEN, response.getStatusCode());
+    assertNotNull(response.getBody());
+    assertEquals(403, response.getBody().get("status"));
+    assertEquals("Access denied", response.getBody().get("message"));
+  }
+
+  @Test
+  void getTeacher_unknownId_returns404() {
+    var response =
+        testRestTemplate.exchange(
+            TEACHERS_URL + "/" + UUID.randomUUID(),
+            GET,
+            new HttpEntity<>(adminHeaders()),
+            Map.class);
+
+    assertEquals(NOT_FOUND, response.getStatusCode());
+    assertNotNull(response.getBody());
+    assertEquals(404, response.getBody().get("status"));
+    assertEquals("Teacher not found", response.getBody().get("message"));
+  }
+
+  @Test
+  void getTeacher_withoutAuth_returns401() {
+    var response =
+        testRestTemplate.exchange(
+            TEACHERS_URL + "/" + UUID.randomUUID(),
+            GET,
+            new HttpEntity<>(jsonHeaders()),
+            Map.class);
+
+    assertEquals(UNAUTHORIZED, response.getStatusCode());
+    assertNotNull(response.getBody());
+    assertEquals(401, response.getBody().get("status"));
+    assertEquals("Invalid credentials", response.getBody().get("message"));
+  }
+
+  @Test
+  void getTeacher_doesNotExposePassword() {
+    var id = registerTeacher("single-no-password@example.com");
+
+    var response =
+        testRestTemplate.exchange(
+            TEACHERS_URL + "/" + id, GET, new HttpEntity<>(adminHeaders()), Map.class);
+
+    assertEquals(OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+    assertFalse(response.getBody().containsKey("password"));
+  }
+
+  private UUID registerTeacher(String email) {
     var request =
         RegisterRequest.builder()
             .firstName("John")
@@ -160,6 +264,9 @@ class TeacherIT extends FacadeIT {
             REGISTER_URL, POST, new HttpEntity<>(request, adminHeaders()), Map.class);
 
     assertEquals(CREATED, response.getStatusCode());
+    assertNotNull(response.getBody());
+    var user = (Map<String, Object>) response.getBody().get("user");
+    return UUID.fromString((String) user.get("id"));
   }
 
   private HttpHeaders adminHeaders() {
@@ -170,6 +277,10 @@ class TeacherIT extends FacadeIT {
     return bearerHeaders(tokenFor("student@hei.school", false, Role.STUDENT));
   }
 
+  private HttpHeaders teacherHeaders(UUID id) {
+    return bearerHeaders(tokenFor("teachers@hei.school", false, Role.TEACHER, id));
+  }
+
   private HttpHeaders bearerHeaders(String token) {
     var headers = jsonHeaders();
     headers.setBearerAuth(token);
@@ -177,18 +288,13 @@ class TeacherIT extends FacadeIT {
   }
 
   private String tokenFor(String email, boolean mustChangePassword, Role role) {
+    return tokenFor(email, mustChangePassword, role, UUID.randomUUID());
+  }
+
+  private String tokenFor(String email, boolean mustChangePassword, Role role, UUID id) {
     var user =
         new CustomUserDetails(
-            new User(
-                UUID.randomUUID(),
-                email,
-                "Teacher",
-                "Test",
-                role,
-                null,
-                null,
-                mustChangePassword,
-                null));
+            new User(id, email, "Teacher", "Test", role, null, null, mustChangePassword, null));
     return jwtService.generateToken(user);
   }
 
