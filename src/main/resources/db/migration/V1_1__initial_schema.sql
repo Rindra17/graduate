@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS COURSE_TEACHER (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     teacher_id UUID NOT NULL,
     course_id UUID NOT NULL,
-    CONSTRAINT fk_courseteacher_teacher FOREIGN KEY (teacher_id) REFERENCES TEACHER(id) ON DELETE CASCADE,
+    CONSTRAINT fk_courseteacher_teacher FOREIGN KEY (teacher_id) REFERENCES TEACHER(user_id) ON DELETE CASCADE,
     CONSTRAINT fk_courseteacher_course FOREIGN KEY (course_id) REFERENCES COURSE(id) ON DELETE CASCADE
 );
 
@@ -91,7 +91,7 @@ CREATE TABLE IF NOT EXISTS EXAM (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     course_id UUID NOT NULL,
     title VARCHAR(150),
-    weight NUMERIC(1, 2),
+    weight NUMERIC(4, 2),
     exam_date DATE,
     CONSTRAINT fk_exam_course FOREIGN KEY (course_id) REFERENCES COURSE(id) ON DELETE CASCADE
 );
@@ -100,8 +100,8 @@ CREATE TABLE IF NOT EXISTS GRADE (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     student_id UUID NOT NULL,
     exam_id UUID NOT NULL,
-    score NUMERIC(2, 2),
-    CONSTRAINT fk_grade_student FOREIGN KEY (student_id) REFERENCES STUDENT(id) ON DELETE CASCADE,
+    score NUMERIC(4, 2),
+    CONSTRAINT fk_grade_student FOREIGN KEY (student_id) REFERENCES STUDENT(user_id) ON DELETE CASCADE,
     CONSTRAINT fk_grade_exam FOREIGN KEY (exam_id) REFERENCES EXAM(id) ON DELETE CASCADE
 );
 
@@ -109,8 +109,8 @@ CREATE TABLE IF NOT EXISTS GRADE_HISTORY (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     grade_id UUID NOT NULL,
     user_id UUID NOT NULL,
-    previous_score NUMERIC(2, 2),
-    new_score NUMERIC(2, 2),
+    previous_score NUMERIC(4, 2),
+    new_score NUMERIC(4, 2),
     reason TEXT,
     modification_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_gradehistory_grade FOREIGN KEY (grade_id) REFERENCES GRADE(id) ON DELETE CASCADE,
@@ -124,6 +124,6 @@ CREATE TABLE IF NOT EXISTS STUDENT_GROUP_HISTORY (
     start_date DATE,
     end_date DATE,
     change_reason TEXT,
-    CONSTRAINT fk_sgh_student FOREIGN KEY (student_id) REFERENCES STUDENT(id) ON DELETE CASCADE,
+    CONSTRAINT fk_sgh_student FOREIGN KEY (student_id) REFERENCES STUDENT(user_id) ON DELETE CASCADE,
     CONSTRAINT fk_sgh_group FOREIGN KEY (group_id) REFERENCES GROUPE(id) ON DELETE CASCADE
 );
