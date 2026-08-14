@@ -5,9 +5,9 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "\"USER\"")
+@Table(name = "\"user\"")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -24,7 +24,7 @@ import lombok.Setter;
 @Builder
 public class JUser {
 
-  @Id @GeneratedValue private UUID id;
+  @Id private UUID id;
 
   @Column(nullable = false)
   private String email;
@@ -43,4 +43,10 @@ public class JUser {
   private Role role;
 
   private String address;
+
+  @Column(name = "must_change_password", nullable = false)
+  private boolean mustChangePassword;
+
+  @Column(name = "entrance_date_time")
+  private LocalDateTime entranceDateTime;
 }

@@ -1,0 +1,2 @@
+ALTER TABLE "USER"
+    ADD COLUMN entrance_date_time TIMESTAMP;
