@@ -17,11 +17,11 @@ public class TeacherMapper {
         entity.getId(), userMapper.toDomain(entity.getUser()), entity.getReference());
   }
 
-  public JTeacher toEntity(Teacher domain, String passwordHash) {
+  public JTeacher toEntity(Teacher domain) {
     if (domain == null) return null;
     return JTeacher.builder()
         .id(domain.id())
-        .user(userMapper.toEntity(domain.user(), passwordHash))
+        .user(userMapper.toEntity(domain.user()))
         .reference(domain.reference())
         .build();
   }

@@ -20,11 +20,11 @@ public class CourseTeacherMapper {
         courseMapper.toDomain(entity.getCourse()));
   }
 
-  public JCourseTeacher toEntity(CourseTeacher domain, String teacherPasswordHash) {
+  public JCourseTeacher toEntity(CourseTeacher domain) {
     if (domain == null) return null;
     return JCourseTeacher.builder()
         .id(domain.id())
-        .teacher(teacherMapper.toEntity(domain.teacher(), teacherPasswordHash))
+        .teacher(teacherMapper.toEntity(domain.teacher()))
         .course(courseMapper.toEntity(domain.course()))
         .build();
   }

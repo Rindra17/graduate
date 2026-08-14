@@ -20,11 +20,11 @@ public class StudentMapper {
         entity.getStatus());
   }
 
-  public JStudent toEntity(Student domain, String passwordHash) {
+  public JStudent toEntity(Student domain) {
     if (domain == null) return null;
     return JStudent.builder()
         .id(domain.id())
-        .user(userMapper.toEntity(domain.user(), passwordHash))
+        .user(userMapper.toEntity(domain.user()))
         .reference(domain.reference())
         .status(domain.status())
         .build();
