@@ -12,20 +12,21 @@ public class UserMapper {
     return new User(
         entity.getId(),
         entity.getEmail(),
-        entity.getFirstname(),
-        entity.getLastname(),
+        entity.getFirstName(),
+        entity.getLastName(),
         entity.getRole(),
-        entity.getAddress());
+        entity.getAddress(),
+        entity.getPassword());
   }
 
-  public JUser toEntity(User domain, String passwordHash) {
+  public JUser toEntity(User domain) {
     if (domain == null) return null;
     return JUser.builder()
         .id(domain.id())
         .email(domain.email())
-        .passwordHash(passwordHash)
-        .firstname(domain.firstname())
-        .lastname(domain.lastname())
+        .password(domain.password())
+        .firstName(domain.firstName())
+        .lastName(domain.lastName())
         .role(domain.role())
         .address(domain.address())
         .build();

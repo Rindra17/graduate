@@ -23,11 +23,11 @@ public class StudentGroupHistoryMapper {
         entity.getChangeReason());
   }
 
-  public JStudentGroupHistory toEntity(StudentGroupHistory domain, String studentPasswordHash) {
+  public JStudentGroupHistory toEntity(StudentGroupHistory domain) {
     if (domain == null) return null;
     return JStudentGroupHistory.builder()
         .id(domain.id())
-        .student(studentMapper.toEntity(domain.student(), studentPasswordHash))
+        .student(studentMapper.toEntity(domain.student()))
         .group(groupeMapper.toEntity(domain.groupe()))
         .startDate(domain.startDate())
         .endDate(domain.endDate())

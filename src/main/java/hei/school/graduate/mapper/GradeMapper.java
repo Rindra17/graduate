@@ -21,11 +21,11 @@ public class GradeMapper {
         entity.getScore());
   }
 
-  public JGrade toEntity(Grade domain, String studentPasswordHash) {
+  public JGrade toEntity(Grade domain) {
     if (domain == null) return null;
     return JGrade.builder()
         .id(domain.id())
-        .student(studentMapper.toEntity(domain.student(), studentPasswordHash))
+        .student(studentMapper.toEntity(domain.student()))
         .exam(examMapper.toEntity(domain.exam()))
         .score(domain.score())
         .build();

@@ -16,11 +16,11 @@ public class AdminMapper {
     return new Admin(entity.getId(), userMapper.toDomain(entity.getUser()), entity.getReference());
   }
 
-  public JAdmin toEntity(Admin domain, String passwordHash) {
+  public JAdmin toEntity(Admin domain) {
     if (domain == null) return null;
     return JAdmin.builder()
         .id(domain.id())
-        .user(userMapper.toEntity(domain.user(), passwordHash))
+        .user(userMapper.toEntity(domain.user()))
         .reference(domain.reference())
         .build();
   }

@@ -24,13 +24,12 @@ public class GradeHistoryMapper {
         entity.getModificationDate());
   }
 
-  public JGradeHistory toEntity(
-      GradeHistory domain, String studentPasswordHash, String userPasswordHash) {
+  public JGradeHistory toEntity(GradeHistory domain) {
     if (domain == null) return null;
     return JGradeHistory.builder()
         .id(domain.id())
-        .grade(gradeMapper.toEntity(domain.grade(), studentPasswordHash))
-        .user(userMapper.toEntity(domain.user(), userPasswordHash))
+        .grade(gradeMapper.toEntity(domain.grade()))
+        .user(userMapper.toEntity(domain.user()))
         .previousScore(domain.previousScore())
         .newScore(domain.newScore())
         .reason(domain.reason())

@@ -30,11 +30,13 @@ public class JUser {
   private String email;
 
   @Column(name = "password_hash", nullable = false)
-  private String passwordHash;
+  private String password;
 
-  private String firstname;
+  @Column(name = "firstname")
+  private String firstName;
 
-  private String lastname;
+  @Column(name = "lastname")
+  private String lastName;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
