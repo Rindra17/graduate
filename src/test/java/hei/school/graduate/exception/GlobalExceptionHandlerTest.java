@@ -40,8 +40,7 @@ class GlobalExceptionHandlerTest {
 
   @Test
   void handleAuthentication_returns401() {
-    var response =
-        handler.handleAuthentication(new BadCredentialsException("Bad credentials"));
+    var response = handler.handleAuthentication(new BadCredentialsException("Bad credentials"));
 
     assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     assertEquals(401, response.getBody().status());
@@ -55,7 +54,8 @@ class GlobalExceptionHandlerTest {
     var bindingResult = new BeanPropertyBindingResult(new Object(), "object");
     bindingResult.addError(new FieldError("object", "email", "must not be blank"));
 
-    var response = handler.handleValidation(new MethodArgumentNotValidException(parameter, bindingResult));
+    var response =
+        handler.handleValidation(new MethodArgumentNotValidException(parameter, bindingResult));
 
     assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     assertEquals(400, response.getBody().status());
