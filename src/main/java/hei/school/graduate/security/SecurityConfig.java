@@ -35,6 +35,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfig {
 
+  private static final String STUDENTS_PATH_PREFIX = "/students/";
   private static final String TEACHERS_PATH_PREFIX = "/teachers/";
 
   private final CustomUserDetailsService userDetailsService;
@@ -52,6 +53,8 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers(HttpMethod.POST, "/auth/register")
                     .hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.GET, "/students/*")
+                    .access(studentByIdAccessManager())
                     .requestMatchers(HttpMethod.GET, "/admins")
                     .hasRole("ADMIN")
                     .requestMatchers(HttpMethod.GET, "/teachers")
@@ -72,6 +75,35 @@ public class SecurityConfig {
         .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
     return http.build();
+  }
+
+  @Bean
+  public AuthorizationManager<RequestAuthorizationContext> studentByIdAccessManager() {
+    return (authentication, context) -> {
+      var auth = authentication.get();
+      if (auth == null || !auth.isAuthenticated()) {
+        return new AuthorizationDecision(false);
+      }
+
+      var isAdmin =
+          auth.getAuthorities().stream()
+              .map(GrantedAuthority::getAuthority)
+              .anyMatch("ROLE_ADMIN"::equals);
+      if (isAdmin) {
+        return new AuthorizationDecision(true);
+      }
+
+      var principal = auth.getPrincipal();
+      if (principal instanceof CustomUserDetails details
+          && details.getUser().role() == Role.STUDENT) {
+        var studentId = extractId(context.getRequest(), STUDENTS_PATH_PREFIX);
+        if (studentId != null && details.getUser().id().toString().equals(studentId)) {
+          return new AuthorizationDecision(true);
+        }
+      }
+
+      return new AuthorizationDecision(false);
+    };
   }
 
   @Bean
