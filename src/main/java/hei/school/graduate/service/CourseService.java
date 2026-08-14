@@ -1,7 +1,7 @@
 package hei.school.graduate.service;
 
-import hei.school.graduate.endpoint.rest.controller.CourseTeacherRequest;
 import hei.school.graduate.endpoint.rest.controller.dto.CourseRequest;
+import hei.school.graduate.endpoint.rest.controller.dto.CourseTeacherRequest;
 import hei.school.graduate.endpoint.rest.controller.dto.ExamRequest;
 import hei.school.graduate.exception.NotFoundException;
 import hei.school.graduate.mapper.CourseMapper;
