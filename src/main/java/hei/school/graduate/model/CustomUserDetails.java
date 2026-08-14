@@ -13,8 +13,10 @@ public class CustomUserDetails implements UserDetails {
 
   private final User user;
 
-  public static CustomUserDetails fromJwtClaims(UUID id, String email, Role role) {
-    return new CustomUserDetails(new User(id, email, null, null, role, null, null));
+  public static CustomUserDetails fromJwtClaims(
+      UUID id, String email, Role role, boolean mustChangePassword) {
+    return new CustomUserDetails(
+        new User(id, email, null, null, role, null, null, mustChangePassword, null));
   }
 
   @Override
@@ -34,6 +36,10 @@ public class CustomUserDetails implements UserDetails {
 
   public User getUser() {
     return user;
+  }
+
+  public boolean mustChangePassword() {
+    return user.mustChangePassword();
   }
 
   @Override
