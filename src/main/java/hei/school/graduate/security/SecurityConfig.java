@@ -1,7 +1,6 @@
 package hei.school.graduate.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import hei.school.graduate.exception.ErrorResponse;
 import hei.school.graduate.service.CustomUserDetailsService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -39,17 +38,21 @@ public class SecurityConfig {
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(
-            auth -> auth.requestMatchers(HttpMethod.POST, "/auth/login")
-                .permitAll()
-                .requestMatchers(HttpMethod.POST, "/auth/register")
-                .hasRole("ADMIN")
-                .anyRequest()
-                .authenticated())
+            auth ->
+                auth.requestMatchers(HttpMethod.POST, "/auth/login")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.POST, "/auth/register")
+                    .hasRole("ADMIN")
+                    .anyRequest()
+                    .authenticated())
         .exceptionHandling(
-            ex -> ex.accessDeniedHandler(
-                (request, response, accessDeniedException) -> writeError(response, 403, "Access denied"))
-                .authenticationEntryPoint(
-                    (request, response, authException) -> writeError(response, 401, "Invalid credentials")))
+            ex ->
+                ex.accessDeniedHandler(
+                        (request, response, accessDeniedException) ->
+                            writeError(response, 403, "Access denied"))
+                    .authenticationEntryPoint(
+                        (request, response, authException) ->
+                            writeError(response, 401, "Invalid credentials")))
         .authenticationProvider(authenticationProvider())
         .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 

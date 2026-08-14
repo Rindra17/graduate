@@ -1,5 +1,7 @@
 package hei.school.graduate.security;
 
+import hei.school.graduate.model.CustomUserDetails;
+import hei.school.graduate.model.Role;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -14,9 +16,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
-
-import hei.school.graduate.model.CustomUserDetails;
-import hei.school.graduate.model.Role;
 
 @Component
 @RequiredArgsConstructor
@@ -43,7 +42,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
       var userDetails = CustomUserDetails.fromJwtClaims(userId, email, role);
 
-      var authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+      var authentication =
+          new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
       SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 

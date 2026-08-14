@@ -4,9 +4,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import hei.school.graduate.conf.FacadeIT;
+import hei.school.graduate.endpoint.rest.controller.dto.LoginRequest;
+import hei.school.graduate.endpoint.rest.controller.dto.RegisterRequest;
+import hei.school.graduate.model.Role;
+import hei.school.graduate.repository.UserRepository;
+import hei.school.graduate.repository.model.JUser;
 import java.util.Map;
 import java.util.UUID;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,13 +24,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
-
-import hei.school.graduate.conf.FacadeIT;
-import hei.school.graduate.endpoint.rest.controller.dto.LoginRequest;
-import hei.school.graduate.endpoint.rest.controller.dto.RegisterRequest;
-import hei.school.graduate.model.Role;
-import hei.school.graduate.repository.UserRepository;
-import hei.school.graduate.repository.model.JUser;
 
 class AuthIT extends FacadeIT {
 
@@ -40,14 +38,11 @@ class AuthIT extends FacadeIT {
   private static final String TAKEN_EMAIL = "noobie@hei.school";
   private static final String UNKNOWN_EMAIL = "no-such-user@hei.school";
 
-  @Autowired
-  TestRestTemplate testRestTemplate;
+  @Autowired TestRestTemplate testRestTemplate;
 
-  @Autowired
-  UserRepository userRepository;
+  @Autowired UserRepository userRepository;
 
-  @Autowired
-  PasswordEncoder passwordEncoder;
+  @Autowired PasswordEncoder passwordEncoder;
 
   @BeforeEach
   void seedUsers() {
@@ -78,21 +73,23 @@ class AuthIT extends FacadeIT {
   void register_then_login_returns_usable_tokens() {
     var token = loginAndGetToken(ADMIN_EMAIL, PASSWORD);
 
-    var registerResponse = registerWithToken(token,
-        RegisterRequest.builder()
-            .firstName("John")
-            .lastName("Doe")
-            .email(NEW_EMAIL)
-            .address("Antananarivo")
-            .role(Role.STUDENT)
-            .password(PASSWORD)
-            .build());
+    var registerResponse =
+        registerWithToken(
+            token,
+            RegisterRequest.builder()
+                .firstName("John")
+                .lastName("Doe")
+                .email(NEW_EMAIL)
+                .address("Antananarivo")
+                .role(Role.STUDENT)
+                .password(PASSWORD)
+                .build());
 
     assertEquals(HttpStatus.CREATED, registerResponse.getStatusCode());
     assertNotNull(registerResponse.getBody());
 
-    var loginResponse = testRestTemplate.postForEntity(
-        LOGIN_URL, new LoginRequest(NEW_EMAIL, PASSWORD), Map.class);
+    var loginResponse =
+        testRestTemplate.postForEntity(LOGIN_URL, new LoginRequest(NEW_EMAIL, PASSWORD), Map.class);
 
     assertEquals(HttpStatus.ACCEPTED, loginResponse.getStatusCode());
     assertNotNull(loginResponse.getHeaders().getFirst(HttpHeaders.SET_COOKIE));
@@ -102,30 +99,33 @@ class AuthIT extends FacadeIT {
   void register_with_existing_email_is_rejected() {
     var token = loginAndGetToken(ADMIN_EMAIL, PASSWORD);
 
-    var response = registerWithToken(token,
-        RegisterRequest.builder()
-            .firstName("Noo")
-            .lastName("Bie")
-            .email(TAKEN_EMAIL)
-            .role(Role.STUDENT)
-            .password(PASSWORD)
-            .build());
+    var response =
+        registerWithToken(
+            token,
+            RegisterRequest.builder()
+                .firstName("Noo")
+                .lastName("Bie")
+                .email(TAKEN_EMAIL)
+                .role(Role.STUDENT)
+                .password(PASSWORD)
+                .build());
 
     assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
   }
 
   @Test
   void register_without_authentication_is_rejected() {
-    var response = testRestTemplate.postForEntity(
-        REGISTER_URL,
-        RegisterRequest.builder()
-            .firstName("No")
-            .lastName("Auth")
-            .email("noauth@hei.school")
-            .role(Role.STUDENT)
-            .password(PASSWORD)
-            .build(),
-        Map.class);
+    var response =
+        testRestTemplate.postForEntity(
+            REGISTER_URL,
+            RegisterRequest.builder()
+                .firstName("No")
+                .lastName("Auth")
+                .email("noauth@hei.school")
+                .role(Role.STUDENT)
+                .password(PASSWORD)
+                .build(),
+            Map.class);
 
     assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
   }
@@ -144,21 +144,25 @@ class AuthIT extends FacadeIT {
 
     var token = loginAndGetToken(NEW_EMAIL, PASSWORD);
 
-    var response = registerWithToken(token,
-        RegisterRequest.builder()
-            .firstName("Another")
-            .lastName("Guy")
-            .email("another@hei.school")
-            .role(Role.STUDENT)
-            .password(PASSWORD)
-            .build());
+    var response =
+        registerWithToken(
+            token,
+            RegisterRequest.builder()
+                .firstName("Another")
+                .lastName("Guy")
+                .email("another@hei.school")
+                .role(Role.STUDENT)
+                .password(PASSWORD)
+                .build());
 
     assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
   }
 
   @Test
   void login_with_valid_credentials_returns_cookie() {
-    var response = testRestTemplate.postForEntity(LOGIN_URL, new LoginRequest(ADMIN_EMAIL, PASSWORD), Map.class);
+    var response =
+        testRestTemplate.postForEntity(
+            LOGIN_URL, new LoginRequest(ADMIN_EMAIL, PASSWORD), Map.class);
 
     assertEquals(HttpStatus.ACCEPTED, response.getStatusCode());
     assertNotNull(response.getBody());
@@ -168,19 +172,20 @@ class AuthIT extends FacadeIT {
 
   @Test
   void login_with_wrong_password_returns_401() {
-    var response = testRestTemplate.postForEntity(
-        LOGIN_URL, new LoginRequest(ADMIN_EMAIL, WRONG_PASSWORD), Map.class);
+    var response =
+        testRestTemplate.postForEntity(
+            LOGIN_URL, new LoginRequest(ADMIN_EMAIL, WRONG_PASSWORD), Map.class);
 
     assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     assertNotNull(response.getBody());
-    assertTrue(
-        ((Map<?, ?>) response.getBody()).get("message").toString().contains("Invalid"));
+    assertTrue(((Map<?, ?>) response.getBody()).get("message").toString().contains("Invalid"));
   }
 
   @Test
   void login_with_unknown_email_returns_401() {
-    var response = testRestTemplate.postForEntity(
-        LOGIN_URL, new LoginRequest(UNKNOWN_EMAIL, PASSWORD), Map.class);
+    var response =
+        testRestTemplate.postForEntity(
+            LOGIN_URL, new LoginRequest(UNKNOWN_EMAIL, PASSWORD), Map.class);
 
     assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
   }
@@ -189,15 +194,16 @@ class AuthIT extends FacadeIT {
   void login_with_malformed_body_returns_400() {
     var headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
-    var response = testRestTemplate.postForEntity(
-        LOGIN_URL, new HttpEntity<>("{not-json", headers), Map.class);
+    var response =
+        testRestTemplate.postForEntity(
+            LOGIN_URL, new HttpEntity<>("{not-json", headers), Map.class);
 
     assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
   }
 
   private String loginAndGetToken(String email, String password) {
-    var response = testRestTemplate.postForEntity(
-        LOGIN_URL, new LoginRequest(email, password), Map.class);
+    var response =
+        testRestTemplate.postForEntity(LOGIN_URL, new LoginRequest(email, password), Map.class);
     assertEquals(HttpStatus.ACCEPTED, response.getStatusCode());
     var setCookie = response.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
     assertNotNull(setCookie);

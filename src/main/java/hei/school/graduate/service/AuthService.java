@@ -1,12 +1,5 @@
 package hei.school.graduate.service;
 
-import java.time.Duration;
-import java.util.UUID;
-
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-
 import hei.school.graduate.endpoint.rest.controller.dto.AuthResult;
 import hei.school.graduate.endpoint.rest.controller.dto.LoginRequest;
 import hei.school.graduate.endpoint.rest.controller.dto.RegisterRequest;
@@ -18,7 +11,12 @@ import hei.school.graduate.model.Role;
 import hei.school.graduate.model.User;
 import hei.school.graduate.repository.UserRepository;
 import hei.school.graduate.security.JwtService;
+import java.time.Duration;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
@@ -40,13 +38,15 @@ public class AuthService {
     var role = request.getRole() != null ? request.getRole() : Role.STUDENT;
     var password = encoder.encode(request.getPassword());
 
-    var user = new User(UUID.randomUUID(),
-        request.getEmail(),
-        request.getFirstName(),
-        request.getLastName(),
-        role,
-        request.getAddress(),
-        password);
+    var user =
+        new User(
+            UUID.randomUUID(),
+            request.getEmail(),
+            request.getFirstName(),
+            request.getLastName(),
+            role,
+            request.getAddress(),
+            password);
 
     var saved = mapper.toDomain(repository.save(mapper.toEntity(user)));
     var token = service.generateToken(new CustomUserDetails(saved));
@@ -55,8 +55,10 @@ public class AuthService {
   }
 
   public AuthResult login(LoginRequest request) {
-    var jUser = repository.findByEmail(request.email())
-        .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
+    var jUser =
+        repository
+            .findByEmail(request.email())
+            .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
 
     if (!encoder.matches(request.password(), jUser.getPassword())) {
       throw new InvalidCredentialsException("Invalid email or password");
