@@ -49,34 +49,24 @@ class AuthIT extends FacadeIT {
   private static final String LOGIN_URL = "/auth/login";
   private static final String CHANGE_PASSWORD_URL = "/auth/change-password";
 
-  @Autowired
-  TestRestTemplate testRestTemplate;
+  @Autowired TestRestTemplate testRestTemplate;
 
-  @Autowired
-  JwtService jwtService;
+  @Autowired JwtService jwtService;
 
-  @Autowired
-  CustomUserDetailsService userDetailsService;
+  @Autowired CustomUserDetailsService userDetailsService;
 
-  @Autowired
-  UserRepository userRepository;
+  @Autowired UserRepository userRepository;
 
-  @Autowired
-  StudentRepository studentRepository;
+  @Autowired StudentRepository studentRepository;
 
-  @Autowired
-  TeacherRepository teacherRepository;
-  @Autowired
-  AdminRepository adminRepository;
+  @Autowired TeacherRepository teacherRepository;
+  @Autowired AdminRepository adminRepository;
 
-  @Autowired
-  UserMapper userMapper;
+  @Autowired UserMapper userMapper;
 
-  @PersistenceContext
-  EntityManager entityManager;
+  @PersistenceContext EntityManager entityManager;
 
-  @Autowired
-  TransactionTemplate transactionTemplate;
+  @Autowired TransactionTemplate transactionTemplate;
 
   @BeforeEach
   void setUp() {
@@ -87,8 +77,9 @@ class AuthIT extends FacadeIT {
   void register_validRequest_returns201AndUser() {
     var request = registerRequest("reg@example.com");
 
-    var response = testRestTemplate.exchange(
-        REGISTER_URL, POST, new HttpEntity<>(request, adminHeaders()), Map.class);
+    var response =
+        testRestTemplate.exchange(
+            REGISTER_URL, POST, new HttpEntity<>(request, adminHeaders()), Map.class);
 
     assertEquals(CREATED, response.getStatusCode());
     assertNotNull(response.getBody());
@@ -102,8 +93,9 @@ class AuthIT extends FacadeIT {
   void register_validRequest_withAdminCookie_returns201() {
     var request = registerRequest("cookie@example.com");
 
-    var response = testRestTemplate.exchange(
-        REGISTER_URL, POST, new HttpEntity<>(request, adminCookieHeaders()), Map.class);
+    var response =
+        testRestTemplate.exchange(
+            REGISTER_URL, POST, new HttpEntity<>(request, adminCookieHeaders()), Map.class);
 
     assertEquals(CREATED, response.getStatusCode());
     assertNotNull(response.getBody());
@@ -144,8 +136,9 @@ class AuthIT extends FacadeIT {
     testRestTemplate.exchange(
         REGISTER_URL, POST, new HttpEntity<>(request, adminHeaders()), Map.class);
 
-    var response = testRestTemplate.exchange(
-        REGISTER_URL, POST, new HttpEntity<>(request, adminHeaders()), Map.class);
+    var response =
+        testRestTemplate.exchange(
+            REGISTER_URL, POST, new HttpEntity<>(request, adminHeaders()), Map.class);
 
     assertEquals(CONFLICT, response.getStatusCode());
     assertNotNull(response.getBody());
@@ -160,8 +153,9 @@ class AuthIT extends FacadeIT {
 
     var loginRequest = new LoginRequest(email, temporaryPassword);
 
-    var response = testRestTemplate.exchange(
-        LOGIN_URL, POST, new HttpEntity<>(loginRequest, jsonHeaders()), Map.class);
+    var response =
+        testRestTemplate.exchange(
+            LOGIN_URL, POST, new HttpEntity<>(loginRequest, jsonHeaders()), Map.class);
 
     assertEquals(ACCEPTED, response.getStatusCode());
     assertNotNull(response.getBody());
@@ -176,8 +170,9 @@ class AuthIT extends FacadeIT {
 
     var loginRequest = new LoginRequest(email, temporaryPassword);
 
-    var response = testRestTemplate.exchange(
-        LOGIN_URL, POST, new HttpEntity<>(loginRequest, jsonHeaders()), Map.class);
+    var response =
+        testRestTemplate.exchange(
+            LOGIN_URL, POST, new HttpEntity<>(loginRequest, jsonHeaders()), Map.class);
 
     assertEquals(ACCEPTED, response.getStatusCode());
     assertNotNull(response.getBody());
@@ -191,8 +186,9 @@ class AuthIT extends FacadeIT {
 
     var loginRequest = new LoginRequest(email, "wrongPass");
 
-    var response = testRestTemplate.exchange(
-        LOGIN_URL, POST, new HttpEntity<>(loginRequest, jsonHeaders()), Map.class);
+    var response =
+        testRestTemplate.exchange(
+            LOGIN_URL, POST, new HttpEntity<>(loginRequest, jsonHeaders()), Map.class);
 
     assertEquals(UNAUTHORIZED, response.getStatusCode());
     assertNotNull(response.getBody());
@@ -204,8 +200,9 @@ class AuthIT extends FacadeIT {
   void login_nonExistentEmail_returns401() {
     var loginRequest = new LoginRequest("noone@example.com", "password");
 
-    var response = testRestTemplate.exchange(
-        LOGIN_URL, POST, new HttpEntity<>(loginRequest, jsonHeaders()), Map.class);
+    var response =
+        testRestTemplate.exchange(
+            LOGIN_URL, POST, new HttpEntity<>(loginRequest, jsonHeaders()), Map.class);
 
     assertEquals(UNAUTHORIZED, response.getStatusCode());
     assertNotNull(response.getBody());
@@ -221,11 +218,12 @@ class AuthIT extends FacadeIT {
 
     var changeRequest = new ChangePasswordRequest(user.temporaryPassword(), "brandNew123");
 
-    var response = testRestTemplate.exchange(
-        CHANGE_PASSWORD_URL,
-        POST,
-        new HttpEntity<>(changeRequest, bearerHeaders(token)),
-        Map.class);
+    var response =
+        testRestTemplate.exchange(
+            CHANGE_PASSWORD_URL,
+            POST,
+            new HttpEntity<>(changeRequest, bearerHeaders(token)),
+            Map.class);
 
     assertEquals(OK, response.getStatusCode());
     assertNotNull(response.getBody());
@@ -241,11 +239,12 @@ class AuthIT extends FacadeIT {
 
     var changeRequest = new ChangePasswordRequest("wrongCurrent", "brandNew123");
 
-    var response = testRestTemplate.exchange(
-        CHANGE_PASSWORD_URL,
-        POST,
-        new HttpEntity<>(changeRequest, bearerHeaders(token)),
-        Map.class);
+    var response =
+        testRestTemplate.exchange(
+            CHANGE_PASSWORD_URL,
+            POST,
+            new HttpEntity<>(changeRequest, bearerHeaders(token)),
+            Map.class);
 
     assertEquals(UNAUTHORIZED, response.getStatusCode());
     assertNotNull(response.getBody());
@@ -256,20 +255,22 @@ class AuthIT extends FacadeIT {
   void changePassword_thenLoginWithNewPassword_clearsFlag() {
     var user = registerUser("full-flow@example.com");
 
-    var changeResponse = testRestTemplate.exchange(
-        CHANGE_PASSWORD_URL,
-        POST,
-        new HttpEntity<>(
-            new ChangePasswordRequest(user.temporaryPassword(), "brandNew123"),
-            bearerHeaders(tokenFor(user.id(), true))),
-        Map.class);
+    var changeResponse =
+        testRestTemplate.exchange(
+            CHANGE_PASSWORD_URL,
+            POST,
+            new HttpEntity<>(
+                new ChangePasswordRequest(user.temporaryPassword(), "brandNew123"),
+                bearerHeaders(tokenFor(user.id(), true))),
+            Map.class);
 
     assertEquals(OK, changeResponse.getStatusCode());
 
     var loginRequest = new LoginRequest(user.email(), "brandNew123");
 
-    var loginResponse = testRestTemplate.exchange(
-        LOGIN_URL, POST, new HttpEntity<>(loginRequest, jsonHeaders()), Map.class);
+    var loginResponse =
+        testRestTemplate.exchange(
+            LOGIN_URL, POST, new HttpEntity<>(loginRequest, jsonHeaders()), Map.class);
 
     assertEquals(ACCEPTED, loginResponse.getStatusCode());
     assertNotNull(loginResponse.getBody());
@@ -280,11 +281,12 @@ class AuthIT extends FacadeIT {
   void mustChangePasswordUser_blockedFromOtherEndpoints_returns403() {
     var request = registerRequest("blocked@example.com");
 
-    var response = testRestTemplate.exchange(
-        REGISTER_URL,
-        POST,
-        new HttpEntity<>(request, bearerHeaders(tokenFor("blocked@example.com", true))),
-        Map.class);
+    var response =
+        testRestTemplate.exchange(
+            REGISTER_URL,
+            POST,
+            new HttpEntity<>(request, bearerHeaders(tokenFor("blocked@example.com", true))),
+            Map.class);
 
     assertEquals(FORBIDDEN, response.getStatusCode());
     assertNotNull(response.getBody());
@@ -314,8 +316,9 @@ class AuthIT extends FacadeIT {
   void register_studentRole_returns201WithStudent() {
     var request = registerRequest("student-role@example.com", Role.STUDENT);
 
-    var response = testRestTemplate.exchange(
-        REGISTER_URL, POST, new HttpEntity<>(request, adminHeaders()), Map.class);
+    var response =
+        testRestTemplate.exchange(
+            REGISTER_URL, POST, new HttpEntity<>(request, adminHeaders()), Map.class);
 
     assertEquals(CREATED, response.getStatusCode());
     assertNotNull(response.getBody());
@@ -326,8 +329,9 @@ class AuthIT extends FacadeIT {
   void register_teacherRole_returns201WithTeacher() {
     var request = registerRequest("teacher-role@example.com", Role.TEACHER);
 
-    var response = testRestTemplate.exchange(
-        REGISTER_URL, POST, new HttpEntity<>(request, adminHeaders()), Map.class);
+    var response =
+        testRestTemplate.exchange(
+            REGISTER_URL, POST, new HttpEntity<>(request, adminHeaders()), Map.class);
 
     assertEquals(CREATED, response.getStatusCode());
     assertNotNull(response.getBody());
@@ -338,8 +342,9 @@ class AuthIT extends FacadeIT {
   void register_adminRole_returns201WithAdmin() {
     var request = registerRequest("admin-role@example.com", Role.ADMIN);
 
-    var response = testRestTemplate.exchange(
-        REGISTER_URL, POST, new HttpEntity<>(request, adminHeaders()), Map.class);
+    var response =
+        testRestTemplate.exchange(
+            REGISTER_URL, POST, new HttpEntity<>(request, adminHeaders()), Map.class);
 
     assertEquals(CREATED, response.getStatusCode());
     assertNotNull(response.getBody());
@@ -351,8 +356,9 @@ class AuthIT extends FacadeIT {
     var count = countInYear(Role.STUDENT);
     var request = registerRequest("createstd@example.com", Role.STUDENT);
 
-    var response = testRestTemplate.exchange(
-        REGISTER_URL, POST, new HttpEntity<>(request, adminHeaders()), Map.class);
+    var response =
+        testRestTemplate.exchange(
+            REGISTER_URL, POST, new HttpEntity<>(request, adminHeaders()), Map.class);
 
     assertEquals(CREATED, response.getStatusCode());
     var id = UUID.fromString((String) userOf(response.getBody()).get("id"));
@@ -370,8 +376,9 @@ class AuthIT extends FacadeIT {
     var count = countInYear(Role.TEACHER);
     var request = registerRequest("createtcr@example.com", Role.TEACHER);
 
-    var response = testRestTemplate.exchange(
-        REGISTER_URL, POST, new HttpEntity<>(request, adminHeaders()), Map.class);
+    var response =
+        testRestTemplate.exchange(
+            REGISTER_URL, POST, new HttpEntity<>(request, adminHeaders()), Map.class);
 
     assertEquals(CREATED, response.getStatusCode());
     var id = UUID.fromString((String) userOf(response.getBody()).get("id"));
@@ -387,8 +394,9 @@ class AuthIT extends FacadeIT {
     var count = countInYear(Role.ADMIN);
     var request = registerRequest("createadm@example.com", Role.ADMIN);
 
-    var response = testRestTemplate.exchange(
-        REGISTER_URL, POST, new HttpEntity<>(request, adminHeaders()), Map.class);
+    var response =
+        testRestTemplate.exchange(
+            REGISTER_URL, POST, new HttpEntity<>(request, adminHeaders()), Map.class);
 
     assertEquals(CREATED, response.getStatusCode());
     var id = UUID.fromString((String) userOf(response.getBody()).get("id"));
@@ -403,16 +411,18 @@ class AuthIT extends FacadeIT {
   void register_twoStudents_referencesIncrement() {
     var count = countInYear(Role.STUDENT);
 
-    var first = testRestTemplate.exchange(
-        REGISTER_URL,
-        POST,
-        new HttpEntity<>(registerRequest("increment-a@example.com"), adminHeaders()),
-        Map.class);
-    var second = testRestTemplate.exchange(
-        REGISTER_URL,
-        POST,
-        new HttpEntity<>(registerRequest("increment-b@example.com"), adminHeaders()),
-        Map.class);
+    var first =
+        testRestTemplate.exchange(
+            REGISTER_URL,
+            POST,
+            new HttpEntity<>(registerRequest("increment-a@example.com"), adminHeaders()),
+            Map.class);
+    var second =
+        testRestTemplate.exchange(
+            REGISTER_URL,
+            POST,
+            new HttpEntity<>(registerRequest("increment-b@example.com"), adminHeaders()),
+            Map.class);
 
     assertEquals(CREATED, first.getStatusCode());
     assertEquals(CREATED, second.getStatusCode());
@@ -441,11 +451,12 @@ class AuthIT extends FacadeIT {
         String.format("STD%02d%03d", year % 100, countBefore + 1),
         now);
 
-    var response = testRestTemplate.exchange(
-        REGISTER_URL,
-        POST,
-        new HttpEntity<>(registerRequest("next-std@example.com"), adminHeaders()),
-        Map.class);
+    var response =
+        testRestTemplate.exchange(
+            REGISTER_URL,
+            POST,
+            new HttpEntity<>(registerRequest("next-std@example.com"), adminHeaders()),
+            Map.class);
 
     assertEquals(CREATED, response.getStatusCode());
     var id = UUID.fromString((String) userOf(response.getBody()).get("id"));
@@ -457,17 +468,18 @@ class AuthIT extends FacadeIT {
     transactionTemplate.executeWithoutResult(
         status -> {
           var id = UUID.randomUUID();
-          var jUser = userMapper.toEntity(
-              new User(
-                  id,
-                  email,
-                  "Existing",
-                  "Student",
-                  Role.STUDENT,
-                  null,
-                  "hash",
-                  true,
-                  entrance));
+          var jUser =
+              userMapper.toEntity(
+                  new User(
+                      id,
+                      email,
+                      "Existing",
+                      "Student",
+                      Role.STUDENT,
+                      null,
+                      "hash",
+                      true,
+                      entrance));
           entityManager.persist(jUser);
           entityManager.persist(
               JStudent.builder().user(jUser).reference(reference).status("ACTIVE").build());
@@ -477,8 +489,9 @@ class AuthIT extends FacadeIT {
   private RegisteredUser registerUser(String email) {
     var request = registerRequest(email);
 
-    var response = testRestTemplate.exchange(
-        REGISTER_URL, POST, new HttpEntity<>(request, adminHeaders()), Map.class);
+    var response =
+        testRestTemplate.exchange(
+            REGISTER_URL, POST, new HttpEntity<>(request, adminHeaders()), Map.class);
 
     assertEquals(CREATED, response.getStatusCode());
     assertNotNull(response.getBody());
@@ -493,8 +506,7 @@ class AuthIT extends FacadeIT {
     return (Map<String, Object>) body.get("user");
   }
 
-  private record RegisteredUser(String email, String temporaryPassword, UUID id) {
-  }
+  private record RegisteredUser(String email, String temporaryPassword, UUID id) {}
 
   private RegisterRequest registerRequest(String email) {
     return registerRequest(email, Role.STUDENT);
@@ -550,17 +562,18 @@ class AuthIT extends FacadeIT {
   }
 
   private String tokenFor(String email, boolean mustChangePassword, Role role) {
-    var user = new CustomUserDetails(
-        new User(
-            UUID.randomUUID(),
-            email,
-            "Auth",
-            "User",
-            role,
-            null,
-            null,
-            mustChangePassword,
-            null));
+    var user =
+        new CustomUserDetails(
+            new User(
+                UUID.randomUUID(),
+                email,
+                "Auth",
+                "User",
+                role,
+                null,
+                null,
+                mustChangePassword,
+                null));
     return jwtService.generateToken(user);
   }
 

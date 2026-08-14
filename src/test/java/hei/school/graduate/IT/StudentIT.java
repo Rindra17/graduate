@@ -7,6 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.HttpStatus.CREATED;
+import static org.springframework.http.HttpStatus.FORBIDDEN;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -148,7 +150,114 @@ class StudentIT extends FacadeIT {
     assertFalse(student.containsKey("password"));
   }
 
-  private void registerStudent(String email) {
+  @Test
+  void getStudent_asAdmin_returnsStudent() {
+    var id = registerStudent("admin-view@example.com");
+
+    var response =
+        testRestTemplate.exchange(
+            STUDENTS_URL + "/" + id, GET, new HttpEntity<>(adminHeaders()), Map.class);
+
+    assertEquals(OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+    assertEquals(id.toString(), response.getBody().get("id"));
+    assertEquals("admin-view@example.com", response.getBody().get("email"));
+    assertNotNull(response.getBody().get("reference"));
+    assertEquals("ACTIVE", response.getBody().get("status"));
+  }
+
+  @Test
+  void getStudent_asOwner_returnsStudent() {
+    var id = registerStudent("owner-view@example.com");
+
+    var response =
+        testRestTemplate.exchange(
+            STUDENTS_URL + "/" + id, GET, new HttpEntity<>(studentHeaders(id)), Map.class);
+
+    assertEquals(OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+    assertEquals(id.toString(), response.getBody().get("id"));
+    assertEquals("owner-view@example.com", response.getBody().get("email"));
+  }
+
+  @Test
+  void getStudent_asOtherStudent_returns403() {
+    var id = registerStudent("other-view@example.com");
+
+    var response =
+        testRestTemplate.exchange(
+            STUDENTS_URL + "/" + id,
+            GET,
+            new HttpEntity<>(studentHeaders(UUID.randomUUID())),
+            Map.class);
+
+    assertEquals(FORBIDDEN, response.getStatusCode());
+    assertNotNull(response.getBody());
+    assertEquals(403, response.getBody().get("status"));
+    assertEquals("Access denied", response.getBody().get("message"));
+  }
+
+  @Test
+  void getStudent_asTeacher_returns403() {
+    var id = registerStudent("teacher-view@example.com");
+
+    var response =
+        testRestTemplate.exchange(
+            STUDENTS_URL + "/" + id,
+            GET,
+            new HttpEntity<>(bearerHeaders(tokenFor("teacher@example.com", false, Role.TEACHER))),
+            Map.class);
+
+    assertEquals(FORBIDDEN, response.getStatusCode());
+    assertNotNull(response.getBody());
+    assertEquals(403, response.getBody().get("status"));
+    assertEquals("Access denied", response.getBody().get("message"));
+  }
+
+  @Test
+  void getStudent_unknownId_returns404() {
+    var response =
+        testRestTemplate.exchange(
+            STUDENTS_URL + "/" + UUID.randomUUID(),
+            GET,
+            new HttpEntity<>(adminHeaders()),
+            Map.class);
+
+    assertEquals(NOT_FOUND, response.getStatusCode());
+    assertNotNull(response.getBody());
+    assertEquals(404, response.getBody().get("status"));
+    assertEquals("Student not found", response.getBody().get("message"));
+  }
+
+  @Test
+  void getStudent_withoutAuth_returns401() {
+    var response =
+        testRestTemplate.exchange(
+            STUDENTS_URL + "/" + UUID.randomUUID(),
+            GET,
+            new HttpEntity<>(jsonHeaders()),
+            Map.class);
+
+    assertEquals(UNAUTHORIZED, response.getStatusCode());
+    assertNotNull(response.getBody());
+    assertEquals(401, response.getBody().get("status"));
+    assertEquals("Invalid credentials", response.getBody().get("message"));
+  }
+
+  @Test
+  void getStudent_doesNotExposePassword() {
+    var id = registerStudent("single-no-password@example.com");
+
+    var response =
+        testRestTemplate.exchange(
+            STUDENTS_URL + "/" + id, GET, new HttpEntity<>(adminHeaders()), Map.class);
+
+    assertEquals(OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+    assertFalse(response.getBody().containsKey("password"));
+  }
+
+  private UUID registerStudent(String email) {
     var request =
         RegisterRequest.builder()
             .firstName("John")
@@ -163,10 +272,17 @@ class StudentIT extends FacadeIT {
             REGISTER_URL, POST, new HttpEntity<>(request, adminHeaders()), Map.class);
 
     assertEquals(CREATED, response.getStatusCode());
+    assertNotNull(response.getBody());
+    var user = (Map<String, Object>) response.getBody().get("user");
+    return UUID.fromString((String) user.get("id"));
   }
 
   private HttpHeaders adminHeaders() {
-    return bearerHeaders(tokenFor("students@hei.school", false));
+    return bearerHeaders(tokenFor("students@hei.school", false, Role.ADMIN));
+  }
+
+  private HttpHeaders studentHeaders(UUID id) {
+    return bearerHeaders(tokenFor("students@hei.school", false, Role.STUDENT, id));
   }
 
   private HttpHeaders bearerHeaders(String token) {
@@ -175,19 +291,14 @@ class StudentIT extends FacadeIT {
     return headers;
   }
 
-  private String tokenFor(String email, boolean mustChangePassword) {
+  private String tokenFor(String email, boolean mustChangePassword, Role role) {
+    return tokenFor(email, mustChangePassword, role, UUID.randomUUID());
+  }
+
+  private String tokenFor(String email, boolean mustChangePassword, Role role, UUID id) {
     var user =
         new CustomUserDetails(
-            new User(
-                UUID.randomUUID(),
-                email,
-                "Student",
-                "Test",
-                Role.ADMIN,
-                null,
-                null,
-                mustChangePassword,
-                null));
+            new User(id, email, "Student", "Test", role, null, null, mustChangePassword, null));
     return jwtService.generateToken(user);
   }
 
