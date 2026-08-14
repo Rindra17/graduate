@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.HttpStatus.CREATED;
+import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -119,6 +120,17 @@ class AdminIT extends FacadeIT {
   }
 
   @Test
+  void getAdmins_asNonAdmin_returns403() {
+    var response =
+        testRestTemplate.exchange(ADMINS_URL, GET, new HttpEntity<>(nonAdminHeaders()), Map.class);
+
+    assertEquals(FORBIDDEN, response.getStatusCode());
+    assertNotNull(response.getBody());
+    assertEquals(403, response.getBody().get("status"));
+    assertEquals("Access denied", response.getBody().get("message"));
+  }
+
+  @Test
   void getAdmins_doesNotExposePassword() {
     registerAdmin("no-password@example.com");
 
@@ -150,7 +162,11 @@ class AdminIT extends FacadeIT {
   }
 
   private HttpHeaders adminHeaders() {
-    return bearerHeaders(tokenFor("admins@hei.school", false));
+    return bearerHeaders(tokenFor("admins@hei.school", false, Role.ADMIN));
+  }
+
+  private HttpHeaders nonAdminHeaders() {
+    return bearerHeaders(tokenFor("student@hei.school", false, Role.STUDENT));
   }
 
   private HttpHeaders bearerHeaders(String token) {
@@ -159,7 +175,7 @@ class AdminIT extends FacadeIT {
     return headers;
   }
 
-  private String tokenFor(String email, boolean mustChangePassword) {
+  private String tokenFor(String email, boolean mustChangePassword, Role role) {
     var user =
         new CustomUserDetails(
             new User(
@@ -167,7 +183,7 @@ class AdminIT extends FacadeIT {
                 email,
                 "Admin",
                 "Test",
-                Role.ADMIN,
+                role,
                 null,
                 null,
                 mustChangePassword,

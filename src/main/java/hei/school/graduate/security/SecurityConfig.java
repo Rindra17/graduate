@@ -43,6 +43,10 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers(HttpMethod.POST, "/auth/register")
                     .hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.GET, "/admins")
+                    .hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.GET, "/teachers")
+                    .hasRole("ADMIN")
                     .anyRequest()
                     .authenticated())
         .exceptionHandling(
