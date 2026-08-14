@@ -42,7 +42,7 @@ public class SecurityConfig {
                 auth.requestMatchers(HttpMethod.POST, "/auth/login")
                     .permitAll()
                     .requestMatchers(HttpMethod.POST, "/auth/register")
-                    .hasRole("ADMIN")
+                    .permitAll()
                     .anyRequest()
                     .authenticated())
         .exceptionHandling(
