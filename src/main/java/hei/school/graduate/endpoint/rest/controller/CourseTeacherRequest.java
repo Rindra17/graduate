@@ -1,4 +1,9 @@
 package hei.school.graduate.endpoint.rest.controller;
 
-/** CourseTeacherRequest */
-public class CourseTeacherRequest {}
+import java.util.UUID;
+import lombok.Data;
+
+@Data
+public class CourseTeacherRequest {
+  private UUID teacherId;
+}

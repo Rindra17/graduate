@@ -4,6 +4,8 @@ import hei.school.graduate.endpoint.rest.controller.dto.CourseRequest;
 import hei.school.graduate.endpoint.rest.controller.dto.ExamRequest;
 import hei.school.graduate.model.Course;
 import hei.school.graduate.model.Exam;
+import hei.school.graduate.model.Groupe;
+import hei.school.graduate.model.Teacher;
 import hei.school.graduate.service.CourseService;
 import java.util.List;
 import java.util.UUID;
@@ -49,7 +51,7 @@ public class CourseController {
   }
 
   @GetMapping("/{id}/teachers")
-  public List<String> getTeachersByCourseId(@RequestParam UUID id) {
+  public List<Teacher> getTeachersByCourseId(@RequestParam UUID id) {
     return courseService.getTeachersByCourseId(id);
   }
 
@@ -65,7 +67,7 @@ public class CourseController {
   }
 
   @GetMapping("/{id}/groups")
-  public List<String> getGroupsByCourseId(@RequestParam UUID id) {
+  public List<Groupe> getGroupsByCourseId(@RequestParam UUID id) {
     return courseService.getGroupsByCourseId(id);
   }
 
