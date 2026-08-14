@@ -2,6 +2,7 @@ package hei.school.graduate.endpoint.rest.controller;
 
 import hei.school.graduate.endpoint.rest.controller.dto.ChangePasswordRequest;
 import hei.school.graduate.endpoint.rest.controller.dto.LoginRequest;
+import hei.school.graduate.endpoint.rest.controller.dto.LoginResponse;
 import hei.school.graduate.endpoint.rest.controller.dto.RegisterRequest;
 import hei.school.graduate.endpoint.rest.controller.dto.RegisterResponse;
 import hei.school.graduate.model.CustomUserDetails;
@@ -37,11 +38,11 @@ public class AuthController {
 
   @PostMapping("/login")
   @ResponseStatus(HttpStatus.ACCEPTED)
-  public User login(@RequestBody LoginRequest request, HttpServletResponse response) {
+  public LoginResponse login(@RequestBody LoginRequest request, HttpServletResponse response) {
     var result = service.login(request);
     response.addHeader(HttpHeaders.SET_COOKIE, result.cookie());
 
-    return result.user();
+    return new LoginResponse(result.user(), result.token());
   }
 
   @PostMapping("/change-password")

@@ -36,6 +36,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
   private static final String STUDENTS_PATH_PREFIX = "/students/";
+  private static final String TEACHERS_PATH_PREFIX = "/teachers/";
 
   private final CustomUserDetailsService userDetailsService;
   private final JwtAuthFilter jwtAuthFilter;
@@ -51,9 +52,15 @@ public class SecurityConfig {
                 auth.requestMatchers(HttpMethod.POST, "/auth/login")
                     .permitAll()
                     .requestMatchers(HttpMethod.POST, "/auth/register")
-                    .permitAll()
+                    .hasRole("ADMIN")
                     .requestMatchers(HttpMethod.GET, "/students/*")
                     .access(studentByIdAccessManager())
+                    .requestMatchers(HttpMethod.GET, "/admins")
+                    .hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.GET, "/teachers")
+                    .hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.GET, "/teachers/*")
+                    .access(teacherByIdAccessManager())
                     .anyRequest()
                     .authenticated())
         .exceptionHandling(
@@ -89,7 +96,7 @@ public class SecurityConfig {
       var principal = auth.getPrincipal();
       if (principal instanceof CustomUserDetails details
           && details.getUser().role() == Role.STUDENT) {
-        var studentId = extractStudentId(context.getRequest());
+        var studentId = extractId(context.getRequest(), STUDENTS_PATH_PREFIX);
         if (studentId != null && details.getUser().id().toString().equals(studentId)) {
           return new AuthorizationDecision(true);
         }
@@ -99,10 +106,39 @@ public class SecurityConfig {
     };
   }
 
-  private static String extractStudentId(HttpServletRequest request) {
+  @Bean
+  public AuthorizationManager<RequestAuthorizationContext> teacherByIdAccessManager() {
+    return (authentication, context) -> {
+      var auth = authentication.get();
+      if (auth == null || !auth.isAuthenticated()) {
+        return new AuthorizationDecision(false);
+      }
+
+      var isAdmin =
+          auth.getAuthorities().stream()
+              .map(GrantedAuthority::getAuthority)
+              .anyMatch("ROLE_ADMIN"::equals);
+      if (isAdmin) {
+        return new AuthorizationDecision(true);
+      }
+
+      var principal = auth.getPrincipal();
+      if (principal instanceof CustomUserDetails details
+          && details.getUser().role() == Role.TEACHER) {
+        var teacherId = extractId(context.getRequest(), TEACHERS_PATH_PREFIX);
+        if (teacherId != null && details.getUser().id().toString().equals(teacherId)) {
+          return new AuthorizationDecision(true);
+        }
+      }
+
+      return new AuthorizationDecision(false);
+    };
+  }
+
+  private static String extractId(HttpServletRequest request, String pathPrefix) {
     var uri = request.getRequestURI();
-    if (uri.startsWith(STUDENTS_PATH_PREFIX)) {
-      return uri.substring(STUDENTS_PATH_PREFIX.length());
+    if (uri.startsWith(pathPrefix)) {
+      return uri.substring(pathPrefix.length());
     }
     return null;
   }

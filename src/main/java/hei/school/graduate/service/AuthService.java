@@ -95,7 +95,7 @@ public class AuthService {
     var user = mapper.toDomain(jUser);
     var token = service.generateToken(new CustomUserDetails(user));
 
-    return new AuthResult(user, buildCookie(token));
+    return new AuthResult(user, token, buildCookie(token));
   }
 
   public AuthResult changePassword(UUID userId, ChangePasswordRequest request) {
@@ -114,7 +114,7 @@ public class AuthService {
     var saved = mapper.toDomain(repository.save(jUser));
     var token = service.generateToken(new CustomUserDetails(saved));
 
-    return new AuthResult(saved, buildCookie(token));
+    return new AuthResult(saved, token, buildCookie(token));
   }
 
   private void createRoleRecord(JUser jUser, String reference) {
