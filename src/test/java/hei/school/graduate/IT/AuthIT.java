@@ -160,7 +160,8 @@ class AuthIT extends FacadeIT {
 
     assertEquals(ACCEPTED, response.getStatusCode());
     assertNotNull(response.getBody());
-    assertEquals(email, response.getBody().get("email"));
+    assertEquals(email, userOf(response.getBody()).get("email"));
+    assertNotNull(response.getBody().get("token"));
     assertTrue(response.getHeaders().containsKey("Set-Cookie"));
   }
 
@@ -177,7 +178,7 @@ class AuthIT extends FacadeIT {
 
     assertEquals(ACCEPTED, response.getStatusCode());
     assertNotNull(response.getBody());
-    assertEquals(true, response.getBody().get("mustChangePassword"));
+    assertEquals(true, userOf(response.getBody()).get("mustChangePassword"));
   }
 
   @Test
@@ -275,7 +276,7 @@ class AuthIT extends FacadeIT {
 
     assertEquals(ACCEPTED, loginResponse.getStatusCode());
     assertNotNull(loginResponse.getBody());
-    assertEquals(false, loginResponse.getBody().get("mustChangePassword"));
+    assertEquals(false, userOf(loginResponse.getBody()).get("mustChangePassword"));
   }
 
   @Test
