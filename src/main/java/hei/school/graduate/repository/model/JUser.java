@@ -24,8 +24,7 @@ import lombok.Setter;
 @Builder
 public class JUser {
 
-  @Id
-  private UUID id;
+  @Id private UUID id;
 
   @Column(nullable = false)
   private String email;
