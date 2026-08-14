@@ -31,6 +31,7 @@ public class JwtService {
         .subject(userDetails.getUser().id().toString())
         .claim("role", userDetails.getUser().role().name())
         .claim("email", userDetails.getUser().email())
+        .claim("mustChangePassword", userDetails.getUser().mustChangePassword())
         .issuedAt(now)
         .expiration(new Date(now.getTime() + expiration))
         .signWith(signingKey)
@@ -56,6 +57,10 @@ public class JwtService {
 
   public String extractRole(String token) {
     return parseClaims(token).get("role", String.class);
+  }
+
+  public boolean extractMustChangePassword(String token) {
+    return parseClaims(token).get("mustChangePassword", Boolean.class);
   }
 
   private Claims parseClaims(String token) {

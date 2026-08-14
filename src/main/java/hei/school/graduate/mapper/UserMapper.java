@@ -16,7 +16,9 @@ public class UserMapper {
         entity.getLastName(),
         entity.getRole(),
         entity.getAddress(),
-        entity.getPassword());
+        entity.getPassword(),
+        entity.isMustChangePassword(),
+        entity.getEntranceDateTime());
   }
 
   public JUser toEntity(User domain) {
@@ -29,6 +31,8 @@ public class UserMapper {
         .lastName(domain.lastName())
         .role(domain.role())
         .address(domain.address())
+        .mustChangePassword(domain.mustChangePassword())
+        .entranceDateTime(domain.entranceDateTime())
         .build();
   }
 }
