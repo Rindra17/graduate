@@ -86,7 +86,7 @@ public class CourseController {
   public void createExam(@PathVariable UUID id, @RequestBody ExamRequest examRequest) {
     courseService.createExam(id, examRequest);
   }
-  
+
   @PostMapping("/{id}/groups")
   public void addGroupToCourse(@PathVariable UUID id, @RequestBody UUID groupId) {
     courseService.assingGroupToCourse(id, groupId);

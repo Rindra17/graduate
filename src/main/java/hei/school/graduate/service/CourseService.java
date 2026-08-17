@@ -3,6 +3,7 @@ package hei.school.graduate.service;
 import hei.school.graduate.endpoint.rest.controller.dto.CourseRequest;
 import hei.school.graduate.endpoint.rest.controller.dto.CourseTeacherRequest;
 import hei.school.graduate.endpoint.rest.controller.dto.ExamRequest;
+import hei.school.graduate.exception.ConflictException;
 import hei.school.graduate.exception.NotFoundException;
 import hei.school.graduate.mapper.CourseMapper;
 import hei.school.graduate.mapper.ExamMapper;
@@ -32,9 +33,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @AllArgsConstructor
@@ -119,8 +118,7 @@ public class CourseService {
         courseTeacherRepository.findAllByCourse_Id(id).stream()
             .anyMatch(ct -> ct.getTeacher().getId().equals(teacher.getId()));
     if (alreadyAssigned) {
-      throw new ResponseStatusException(
-          HttpStatus.CONFLICT,
+      throw new ConflictException(
           "Teacher " + teacher.getId() + " is already assigned to course " + id);
     }
 
@@ -136,8 +134,7 @@ public class CourseService {
             .findFirst()
             .orElseThrow(
                 () ->
-                    new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
+                    new NotFoundException(
                         "Teacher " + teacherId + " is not assigned to course " + id));
 
     courseTeacherRepository.delete(courseTeacher);
@@ -186,17 +183,13 @@ public class CourseService {
     JCourse course = findCourseOrThrow(id);
 
     JGroupe groupe =
-        groupRepository
-            .findById(groupId)
-            .orElseThrow(() -> notFound("Group", groupId));
+        groupRepository.findById(groupId).orElseThrow(() -> notFound("Group", groupId));
 
     boolean alreadyAssigned =
         courseGroupRepository.findAllByCourse_Id(id).stream()
             .anyMatch(cg -> cg.getGroupe().getId().equals(groupe.getId()));
     if (alreadyAssigned) {
-      throw new ResponseStatusException(
-          HttpStatus.CONFLICT,
-          "Group " + groupId + " is already assigned to course " + id);
+      throw new ConflictException("Group " + groupId + " is already assigned to course " + id);
     }
 
     JCourseGroup courseGroup = JCourseGroup.builder().course(course).groupe(groupe).build();
@@ -211,8 +204,7 @@ public class CourseService {
             .findFirst()
             .orElseThrow(
                 () ->
-                    new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
+                    new NotFoundException(
                         "Group " + groupId + " is not assigned to course " + id));
 
     courseGroupRepository.delete(courseGroup);
