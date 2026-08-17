@@ -1,5 +1,6 @@
 package hei.school.graduate.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -10,6 +11,6 @@ public record User(
     String lastName,
     Role role,
     String address,
-    String password,
+    @JsonIgnore String password,
     boolean mustChangePassword,
     LocalDateTime entranceDateTime) {}

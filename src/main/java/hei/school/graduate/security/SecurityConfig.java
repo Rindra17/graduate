@@ -4,10 +4,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import hei.school.graduate.exception.ErrorResponse;
 import hei.school.graduate.model.CustomUserDetails;
 import hei.school.graduate.model.Role;
+import hei.school.graduate.repository.CourseTeacherRepository;
+import hei.school.graduate.repository.ExamRepository;
 import hei.school.graduate.service.CustomUserDetailsService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -37,10 +40,14 @@ public class SecurityConfig {
 
   private static final String STUDENTS_PATH_PREFIX = "/students/";
   private static final String TEACHERS_PATH_PREFIX = "/teachers/";
+  private static final String EXAMS_PATH_PREFIX = "/exams/";
+  private static final String GRADES_STUDENTS_SUFFIX = "/grades-students";
 
   private final CustomUserDetailsService userDetailsService;
   private final JwtAuthFilter jwtAuthFilter;
   private final ObjectMapper objectMapper;
+  private final ExamRepository examRepository;
+  private final CourseTeacherRepository courseTeacherRepository;
 
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -63,6 +70,8 @@ public class SecurityConfig {
                     .hasRole("ADMIN")
                     .requestMatchers(HttpMethod.POST, "/courses/**")
                     .hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.GET, "/exams/*/grades-students")
+                    .access(examGradesAccessManager())
                     .requestMatchers(HttpMethod.GET, "/students/*")
                     .access(studentByIdAccessManager())
                     .requestMatchers(HttpMethod.GET, "/admins")
@@ -143,6 +152,60 @@ public class SecurityConfig {
 
       return new AuthorizationDecision(false);
     };
+  }
+
+  @Bean
+  public AuthorizationManager<RequestAuthorizationContext> examGradesAccessManager() {
+    return (authentication, context) -> {
+      var auth = authentication.get();
+      if (auth == null || !auth.isAuthenticated()) {
+        return new AuthorizationDecision(false);
+      }
+
+      var isAdmin =
+          auth.getAuthorities().stream()
+              .map(GrantedAuthority::getAuthority)
+              .anyMatch("ROLE_ADMIN"::equals);
+      if (isAdmin) {
+        return new AuthorizationDecision(true);
+      }
+
+      var principal = auth.getPrincipal();
+      if (principal instanceof CustomUserDetails details
+          && details.getUser().role() == Role.TEACHER) {
+        var examId = extractExamId(context.getRequest());
+        if (examId == null) {
+          return new AuthorizationDecision(false);
+        }
+        var isAssigned =
+            examRepository
+                .findById(examId)
+                .map(
+                    exam ->
+                        courseTeacherRepository
+                            .findAllByCourse_Id(exam.getCourse().getId())
+                            .stream()
+                            .anyMatch(ct -> ct.getTeacher().getId().equals(details.getUser().id())))
+                .orElse(false);
+        return new AuthorizationDecision(isAssigned);
+      }
+
+      return new AuthorizationDecision(false);
+    };
+  }
+
+  private static UUID extractExamId(HttpServletRequest request) {
+    var uri = request.getRequestURI();
+    if (uri.startsWith(EXAMS_PATH_PREFIX) && uri.endsWith(GRADES_STUDENTS_SUFFIX)) {
+      var rawId =
+          uri.substring(EXAMS_PATH_PREFIX.length(), uri.length() - GRADES_STUDENTS_SUFFIX.length());
+      try {
+        return UUID.fromString(rawId);
+      } catch (IllegalArgumentException e) {
+        return null;
+      }
+    }
+    return null;
   }
 
   private static String extractId(HttpServletRequest request, String pathPrefix) {
