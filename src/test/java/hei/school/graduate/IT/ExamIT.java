@@ -55,8 +55,7 @@ class ExamIT extends FacadeIT {
       UUID.fromString("00000000-0000-0000-0000-000000000006");
   private static final UUID OTHER_COURSE_ID =
       UUID.fromString("00000000-0000-0000-0000-000000000007");
-  private static final UUID OTHER_EXAM_ID =
-      UUID.fromString("00000000-0000-0000-0000-000000000008");
+  private static final UUID OTHER_EXAM_ID = UUID.fromString("00000000-0000-0000-0000-000000000008");
 
   @Autowired TestRestTemplate testRestTemplate;
   @Autowired JwtService jwtService;
@@ -177,9 +176,7 @@ class ExamIT extends FacadeIT {
             "SELECT COUNT(*) FROM teacher WHERE user_id = ?", Integer.class, TEST_TEACHER_ID)
         == 0) {
       jdbcTemplate.update(
-          "INSERT INTO teacher (user_id, reference) VALUES (?, ?)",
-          TEST_TEACHER_ID,
-          "TCH00001");
+          "INSERT INTO teacher (user_id, reference) VALUES (?, ?)", TEST_TEACHER_ID, "TCH00001");
     }
 
     jdbcTemplate.update(
@@ -540,10 +537,7 @@ class ExamIT extends FacadeIT {
   void deleteExam_teacherNotAssignedToCourse_returns403() {
     var response =
         testRestTemplate.exchange(
-            EXAMS_URL + "/" + OTHER_EXAM_ID,
-            DELETE,
-            new HttpEntity<>(teacherHeaders()),
-            Map.class);
+            EXAMS_URL + "/" + OTHER_EXAM_ID, DELETE, new HttpEntity<>(teacherHeaders()), Map.class);
 
     assertEquals(FORBIDDEN, response.getStatusCode());
   }
@@ -578,8 +572,7 @@ class ExamIT extends FacadeIT {
 
   private String tokenForId(UUID id, Role role, String email) {
     var user =
-        new CustomUserDetails(
-            new User(id, email, "Exam", "Tester", role, null, null, false, null));
+        new CustomUserDetails(new User(id, email, "Exam", "Tester", role, null, null, false, null));
     return jwtService.generateToken(user);
   }
 
