@@ -71,9 +71,12 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.POST, "/courses/**")
                     .hasRole("ADMIN")
                     .requestMatchers(
-                        HttpMethod.GET, "/exams/*/grades-students", "/exams/*/grades-students/*")
+                        HttpMethod.GET,
+                        "/exams/*/grades-students",
+                        "/exams/*/grades-students/*",
+                        "/exams/*/grades-students/*/history")
                     .access(examGradesAccessManager())
-                    .requestMatchers(HttpMethod.POST, "/exams/*/grades-students")
+                    .requestMatchers(HttpMethod.PUT, "/exams/*/grades-students")
                     .access(examGradesAccessManager())
                     .requestMatchers(HttpMethod.GET, "/students/*")
                     .access(studentByIdAccessManager())
@@ -178,7 +181,9 @@ public class SecurityConfig {
         if (details.getUser().role() == Role.STUDENT) {
           var idStudent = extractIdStudent(context.getRequest());
           return new AuthorizationDecision(
-              idStudent != null && details.getUser().id().equals(idStudent));
+              idStudent != null
+                  && !isHistoryPath(context.getRequest())
+                  && details.getUser().id().equals(idStudent));
         }
 
         if (details.getUser().role() == Role.TEACHER) {
@@ -235,6 +240,15 @@ public class SecurityConfig {
     } catch (IllegalArgumentException e) {
       return null;
     }
+  }
+
+  private static boolean isHistoryPath(HttpServletRequest request) {
+    var uri = request.getRequestURI();
+    if (!uri.startsWith(EXAMS_PATH_PREFIX)) {
+      return false;
+    }
+    var segments = uri.substring(EXAMS_PATH_PREFIX.length()).split("/");
+    return segments.length >= 4 && "history".equals(segments[3]);
   }
 
   private static String extractId(HttpServletRequest request, String pathPrefix) {

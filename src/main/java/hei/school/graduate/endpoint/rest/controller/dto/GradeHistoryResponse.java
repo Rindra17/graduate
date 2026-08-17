@@ -1,6 +1,7 @@
 package hei.school.graduate.endpoint.rest.controller.dto;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,12 +12,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class GradeRequest {
-  private UUID studentId;
-  private BigDecimal score;
-  private String reason;
-
-  public GradeRequest(UUID studentId, BigDecimal score) {
-    this(studentId, score, null);
-  }
+public class GradeHistoryResponse {
+  private UUID id;
+  private UUID examId;
+  private BigDecimal currentScore;
+  private List<GradeHistoryEntry> grades;
 }
