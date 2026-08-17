@@ -92,8 +92,7 @@ public class GradeService {
     JGrade grade =
         gradeRepository
             .findByExam_IdAndStudent_Id(examId, gradeRequest.getStudentId())
-            .orElseGet(
-                () -> JGrade.builder().student(student).exam(exam).build());
+            .orElseGet(() -> JGrade.builder().student(student).exam(exam).build());
 
     BigDecimal previousScore = grade.getScore();
     grade.setScore(gradeRequest.getScore());

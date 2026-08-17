@@ -51,7 +51,8 @@ class GradeIT extends FacadeIT {
   private static final UUID ADMIN_USER_ID = UUID.fromString("00000000-0000-0000-0000-00000000000c");
   private static final UUID UPDATE_STUDENT_ID =
       UUID.fromString("00000000-0000-0000-0000-00000000000e");
-  private static final UUID UPDATE_GRADE_ID = UUID.fromString("00000000-0000-0000-0000-00000000000f");
+  private static final UUID UPDATE_GRADE_ID =
+      UUID.fromString("00000000-0000-0000-0000-00000000000f");
   private static final UUID CREATE_STUDENT_ID =
       UUID.fromString("00000000-0000-0000-0000-000000000010");
   private static final UUID SECOND_UPDATE_STUDENT_ID =
@@ -333,9 +334,7 @@ class GradeIT extends FacadeIT {
     assertEquals(0, newScore.compareTo(new BigDecimal("13.0")));
     var reason =
         jdbcTemplate.queryForObject(
-            "SELECT reason FROM grade_history WHERE grade_id = ?",
-            String.class,
-            UPDATE_GRADE_ID);
+            "SELECT reason FROM grade_history WHERE grade_id = ?", String.class, UPDATE_GRADE_ID);
     assertEquals("Recheck", reason);
   }
 
