@@ -16,12 +16,14 @@ import hei.school.graduate.repository.CourseGroupRepository;
 import hei.school.graduate.repository.CourseRepository;
 import hei.school.graduate.repository.CourseTeacherRepository;
 import hei.school.graduate.repository.ExamRepository;
+import hei.school.graduate.repository.GroupRepository;
 import hei.school.graduate.repository.TeacherRepository;
 import hei.school.graduate.repository.model.JBranch;
 import hei.school.graduate.repository.model.JCourse;
 import hei.school.graduate.repository.model.JCourseGroup;
 import hei.school.graduate.repository.model.JCourseTeacher;
 import hei.school.graduate.repository.model.JExam;
+import hei.school.graduate.repository.model.JGroupe;
 import hei.school.graduate.repository.model.JSemester;
 import hei.school.graduate.repository.model.JTeacher;
 import hei.school.graduate.service.validator.CourseValidator;
@@ -44,6 +46,7 @@ public class CourseService {
   private final ExamRepository examRepository;
   private final CourseTeacherRepository courseTeacherRepository;
   private final CourseGroupRepository courseGroupRepository;
+  private final GroupRepository groupRepository;
   private final CourseValidator validator;
   private final CourseMapper courseMapper;
   private final EntityManager entityManager;
@@ -177,5 +180,41 @@ public class CourseService {
 
   private NotFoundException notFound(String resource, UUID id) {
     return new NotFoundException(resource + " " + id + " not found");
+  }
+
+  public void assingGroupToCourse(UUID id, UUID groupId) {
+    JCourse course = findCourseOrThrow(id);
+
+    JGroupe groupe =
+        groupRepository
+            .findById(groupId)
+            .orElseThrow(() -> notFound("Group", groupId));
+
+    boolean alreadyAssigned =
+        courseGroupRepository.findAllByCourse_Id(id).stream()
+            .anyMatch(cg -> cg.getGroupe().getId().equals(groupe.getId()));
+    if (alreadyAssigned) {
+      throw new ResponseStatusException(
+          HttpStatus.CONFLICT,
+          "Group " + groupId + " is already assigned to course " + id);
+    }
+
+    JCourseGroup courseGroup = JCourseGroup.builder().course(course).groupe(groupe).build();
+    courseGroupRepository.save(courseGroup);
+  }
+
+  public void removeGroupFromCourse(UUID id, UUID groupId) {
+    findCourseOrThrow(id);
+    JCourseGroup courseGroup =
+        courseGroupRepository.findAllByCourse_Id(id).stream()
+            .filter(cg -> cg.getGroupe().getId().equals(groupId))
+            .findFirst()
+            .orElseThrow(
+                () ->
+                    new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Group " + groupId + " is not assigned to course " + id));
+
+    courseGroupRepository.delete(courseGroup);
   }
 }
