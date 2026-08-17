@@ -204,8 +204,7 @@ public class CourseService {
             .findFirst()
             .orElseThrow(
                 () ->
-                    new NotFoundException(
-                        "Group " + groupId + " is not assigned to course " + id));
+                    new NotFoundException("Group " + groupId + " is not assigned to course " + id));
 
     courseGroupRepository.delete(courseGroup);
   }
