@@ -68,6 +68,8 @@ public class SecurityConfig {
                     .hasRole("ADMIN")
                     .requestMatchers(HttpMethod.DELETE, "/courses/**")
                     .hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.POST, "/courses/*/exams")
+                    .access(courseTeacherAccessManager())
                     .requestMatchers(HttpMethod.POST, "/courses/**")
                     .hasRole("ADMIN")
                     .requestMatchers(
@@ -86,6 +88,14 @@ public class SecurityConfig {
                     .hasRole("ADMIN")
                     .requestMatchers(HttpMethod.GET, "/teachers/*")
                     .access(teacherByIdAccessManager())
+                    .requestMatchers(HttpMethod.GET, "/exams/**")
+                    .authenticated()
+                    .requestMatchers(HttpMethod.POST, "/exams/**")
+                    .access(examTeacherAccessManager())
+                    .requestMatchers(HttpMethod.PUT, "/exams/**")
+                    .access(examTeacherAccessManager())
+                    .requestMatchers(HttpMethod.DELETE, "/exams/**")
+                    .access(examTeacherAccessManager())
                     .anyRequest()
                     .authenticated())
         .exceptionHandling(
@@ -210,20 +220,79 @@ public class SecurityConfig {
     };
   }
 
-  private static UUID extractExamId(HttpServletRequest request) {
-    var uri = request.getRequestURI();
-    if (!uri.startsWith(EXAMS_PATH_PREFIX)) {
-      return null;
-    }
-    var segments = uri.substring(EXAMS_PATH_PREFIX.length()).split("/");
-    if (segments.length < 2 || !GRADES_STUDENTS_SUFFIX.equals("/" + segments[1])) {
-      return null;
-    }
-    try {
-      return UUID.fromString(segments[0]);
-    } catch (IllegalArgumentException e) {
-      return null;
-    }
+  @Bean
+  public AuthorizationManager<RequestAuthorizationContext> examTeacherAccessManager() {
+    return (authentication, context) -> {
+      var auth = authentication.get();
+      if (auth == null || !auth.isAuthenticated()) {
+        return new AuthorizationDecision(false);
+      }
+
+      var isAdmin =
+          auth.getAuthorities().stream()
+              .map(GrantedAuthority::getAuthority)
+              .anyMatch("ROLE_ADMIN"::equals);
+      if (isAdmin) {
+        return new AuthorizationDecision(true);
+      }
+
+      var principal = auth.getPrincipal();
+      if (principal instanceof CustomUserDetails details
+          && details.getUser().role() == Role.TEACHER) {
+        UUID examId = extractExamId(context.getRequest());
+        if (examId == null) {
+          return new AuthorizationDecision(false);
+        }
+        return examRepository
+            .findById(examId)
+            .map(
+                exam -> {
+                  UUID courseId = exam.getCourse().getId();
+                  UUID teacherId = details.getUser().id();
+                  boolean assigned =
+                      courseTeacherRepository.findAllByCourse_Id(courseId).stream()
+                          .anyMatch(ct -> ct.getTeacher().getId().equals(teacherId));
+                  return new AuthorizationDecision(assigned);
+                })
+            .orElse(new AuthorizationDecision(false));
+      }
+
+      return new AuthorizationDecision(false);
+    };
+  }
+
+  @Bean
+  public AuthorizationManager<RequestAuthorizationContext> courseTeacherAccessManager() {
+    return (authentication, context) -> {
+      var auth = authentication.get();
+      if (auth == null || !auth.isAuthenticated()) {
+        return new AuthorizationDecision(false);
+      }
+
+      var isAdmin =
+          auth.getAuthorities().stream()
+              .map(GrantedAuthority::getAuthority)
+              .anyMatch("ROLE_ADMIN"::equals);
+      if (isAdmin) {
+        return new AuthorizationDecision(true);
+      }
+
+      var principal = auth.getPrincipal();
+      if (principal instanceof CustomUserDetails details
+          && details.getUser().role() == Role.TEACHER) {
+        UUID courseId = extractCourseId(context.getRequest());
+        if (courseId == null) {
+          return new AuthorizationDecision(false);
+        }
+        UUID teacherId = details.getUser().id();
+        boolean assigned =
+            courseTeacherRepository.findAllByCourse_Id(courseId).stream()
+                .anyMatch(ct -> ct.getTeacher().getId().equals(teacherId));
+        return new AuthorizationDecision(assigned);
+      }
+
+      return new AuthorizationDecision(false);
+    };
   }
 
   private static UUID extractIdStudent(HttpServletRequest request) {
@@ -255,6 +324,32 @@ public class SecurityConfig {
     var uri = request.getRequestURI();
     if (uri.startsWith(pathPrefix)) {
       return uri.substring(pathPrefix.length());
+    }
+    return null;
+  }
+
+  private static UUID extractExamId(HttpServletRequest request) {
+    var uri = request.getRequestURI();
+    var parts = uri.split("/");
+    if (parts.length >= 3 && "exams".equals(parts[1])) {
+      try {
+        return UUID.fromString(parts[2]);
+      } catch (IllegalArgumentException ignored) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  private static UUID extractCourseId(HttpServletRequest request) {
+    var uri = request.getRequestURI();
+    var parts = uri.split("/");
+    if (parts.length >= 3 && "courses".equals(parts[1])) {
+      try {
+        return UUID.fromString(parts[2]);
+      } catch (IllegalArgumentException ignored) {
+        return null;
+      }
     }
     return null;
   }

@@ -12,4 +12,6 @@ public interface GradeRepository extends JpaRepository<JGrade, UUID> {
   List<JGrade> findAllByExam_Id(UUID examId);
 
   Optional<JGrade> findByExam_IdAndStudent_Id(UUID examId, UUID studentId);
+
+  List<JGrade> findAllByStudent_Id(UUID studentId);
 }
