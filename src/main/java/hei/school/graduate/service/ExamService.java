@@ -58,9 +58,8 @@ public class ExamService {
   }
 
   public void deleteExam(UUID id) {
-    if (!examRepository.existsById(id)) {
-      throw new NotFoundException("Exam not found");
-    }
+    JExam exam =
+        examRepository.findById(id).orElseThrow(() -> new NotFoundException("Exam not found"));
     examRepository.deleteById(id);
   }
 
