@@ -4,10 +4,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import hei.school.graduate.exception.ErrorResponse;
 import hei.school.graduate.model.CustomUserDetails;
 import hei.school.graduate.model.Role;
+import hei.school.graduate.repository.CourseTeacherRepository;
+import hei.school.graduate.repository.ExamRepository;
 import hei.school.graduate.service.CustomUserDetailsService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -41,6 +44,8 @@ public class SecurityConfig {
   private final CustomUserDetailsService userDetailsService;
   private final JwtAuthFilter jwtAuthFilter;
   private final ObjectMapper objectMapper;
+  private final ExamRepository examRepository;
+  private final CourseTeacherRepository courseTeacherRepository;
 
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -61,6 +66,8 @@ public class SecurityConfig {
                     .hasRole("ADMIN")
                     .requestMatchers(HttpMethod.DELETE, "/courses/**")
                     .hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.POST, "/courses/*/exams")
+                    .access(courseTeacherAccessManager())
                     .requestMatchers(HttpMethod.POST, "/courses/**")
                     .hasRole("ADMIN")
                     .requestMatchers(HttpMethod.GET, "/students/*")
@@ -71,6 +78,14 @@ public class SecurityConfig {
                     .hasRole("ADMIN")
                     .requestMatchers(HttpMethod.GET, "/teachers/*")
                     .access(teacherByIdAccessManager())
+                    .requestMatchers(HttpMethod.GET, "/exams/**")
+                    .authenticated()
+                    .requestMatchers(HttpMethod.POST, "/exams/**")
+                    .access(examTeacherAccessManager())
+                    .requestMatchers(HttpMethod.PUT, "/exams/**")
+                    .access(examTeacherAccessManager())
+                    .requestMatchers(HttpMethod.DELETE, "/exams/**")
+                    .access(examTeacherAccessManager())
                     .anyRequest()
                     .authenticated())
         .exceptionHandling(
@@ -145,10 +160,111 @@ public class SecurityConfig {
     };
   }
 
+  @Bean
+  public AuthorizationManager<RequestAuthorizationContext> examTeacherAccessManager() {
+    return (authentication, context) -> {
+      var auth = authentication.get();
+      if (auth == null || !auth.isAuthenticated()) {
+        return new AuthorizationDecision(false);
+      }
+
+      var isAdmin =
+          auth.getAuthorities().stream()
+              .map(GrantedAuthority::getAuthority)
+              .anyMatch("ROLE_ADMIN"::equals);
+      if (isAdmin) {
+        return new AuthorizationDecision(true);
+      }
+
+      var principal = auth.getPrincipal();
+      if (principal instanceof CustomUserDetails details
+          && details.getUser().role() == Role.TEACHER) {
+        UUID examId = extractExamId(context.getRequest());
+        if (examId == null) {
+          return new AuthorizationDecision(false);
+        }
+        return examRepository
+            .findById(examId)
+            .map(
+                exam -> {
+                  UUID courseId = exam.getCourse().getId();
+                  UUID teacherId = details.getUser().id();
+                  boolean assigned =
+                      courseTeacherRepository.findAllByCourse_Id(courseId).stream()
+                          .anyMatch(ct -> ct.getTeacher().getId().equals(teacherId));
+                  return new AuthorizationDecision(assigned);
+                })
+            .orElse(new AuthorizationDecision(false));
+      }
+
+      return new AuthorizationDecision(false);
+    };
+  }
+
+  @Bean
+  public AuthorizationManager<RequestAuthorizationContext> courseTeacherAccessManager() {
+    return (authentication, context) -> {
+      var auth = authentication.get();
+      if (auth == null || !auth.isAuthenticated()) {
+        return new AuthorizationDecision(false);
+      }
+
+      var isAdmin =
+          auth.getAuthorities().stream()
+              .map(GrantedAuthority::getAuthority)
+              .anyMatch("ROLE_ADMIN"::equals);
+      if (isAdmin) {
+        return new AuthorizationDecision(true);
+      }
+
+      var principal = auth.getPrincipal();
+      if (principal instanceof CustomUserDetails details
+          && details.getUser().role() == Role.TEACHER) {
+        UUID courseId = extractCourseId(context.getRequest());
+        if (courseId == null) {
+          return new AuthorizationDecision(false);
+        }
+        UUID teacherId = details.getUser().id();
+        boolean assigned =
+            courseTeacherRepository.findAllByCourse_Id(courseId).stream()
+                .anyMatch(ct -> ct.getTeacher().getId().equals(teacherId));
+        return new AuthorizationDecision(assigned);
+      }
+
+      return new AuthorizationDecision(false);
+    };
+  }
+
   private static String extractId(HttpServletRequest request, String pathPrefix) {
     var uri = request.getRequestURI();
     if (uri.startsWith(pathPrefix)) {
       return uri.substring(pathPrefix.length());
+    }
+    return null;
+  }
+
+  private static UUID extractExamId(HttpServletRequest request) {
+    var uri = request.getRequestURI();
+    var parts = uri.split("/");
+    if (parts.length >= 3 && "exams".equals(parts[1])) {
+      try {
+        return UUID.fromString(parts[2]);
+      } catch (IllegalArgumentException ignored) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  private static UUID extractCourseId(HttpServletRequest request) {
+    var uri = request.getRequestURI();
+    var parts = uri.split("/");
+    if (parts.length >= 3 && "courses".equals(parts[1])) {
+      try {
+        return UUID.fromString(parts[2]);
+      } catch (IllegalArgumentException ignored) {
+        return null;
+      }
     }
     return null;
   }

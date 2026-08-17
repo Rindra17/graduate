@@ -161,6 +161,7 @@ public class CourseService {
 
     JExam exam =
         JExam.builder()
+            .course(course)
             .title(examRequest.getTitle())
             .weight(examRequest.getWeight())
             .examDate(

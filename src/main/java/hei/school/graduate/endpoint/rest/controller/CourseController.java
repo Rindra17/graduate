@@ -11,6 +11,7 @@ import hei.school.graduate.service.CourseService;
 import java.util.List;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -47,6 +49,7 @@ public class CourseController {
   }
 
   @DeleteMapping("/{id}")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
   public void deleteCourseById(@PathVariable UUID id) {
     courseService.deleteCourseById(id);
   }
@@ -63,6 +66,7 @@ public class CourseController {
   }
 
   @DeleteMapping("/{id}/teachers/{teacherId}")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
   public void removeTeacherFromCourse(@PathVariable UUID id, @PathVariable UUID teacherId) {
     courseService.removeTeacherFromCourse(id, teacherId);
   }
@@ -78,6 +82,7 @@ public class CourseController {
   }
 
   @PostMapping("/{id}/exams")
+  @ResponseStatus(HttpStatus.CREATED)
   public void createExam(@PathVariable UUID id, @RequestBody ExamRequest examRequest) {
     courseService.createExam(id, examRequest);
   }
