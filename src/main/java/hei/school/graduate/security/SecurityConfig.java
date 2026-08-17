@@ -70,7 +70,8 @@ public class SecurityConfig {
                     .hasRole("ADMIN")
                     .requestMatchers(HttpMethod.POST, "/courses/**")
                     .hasRole("ADMIN")
-                    .requestMatchers(HttpMethod.GET, "/exams/*/grades-students")
+                    .requestMatchers(
+                        HttpMethod.GET, "/exams/*/grades-students", "/exams/*/grades-students/*")
                     .access(examGradesAccessManager())
                     .requestMatchers(HttpMethod.POST, "/exams/*/grades-students")
                     .access(examGradesAccessManager())
@@ -173,23 +174,31 @@ public class SecurityConfig {
       }
 
       var principal = auth.getPrincipal();
-      if (principal instanceof CustomUserDetails details
-          && details.getUser().role() == Role.TEACHER) {
-        var examId = extractExamId(context.getRequest());
-        if (examId == null) {
-          return new AuthorizationDecision(false);
+      if (principal instanceof CustomUserDetails details) {
+        if (details.getUser().role() == Role.STUDENT) {
+          var idStudent = extractIdStudent(context.getRequest());
+          return new AuthorizationDecision(
+              idStudent != null && details.getUser().id().equals(idStudent));
         }
-        var isAssigned =
-            examRepository
-                .findById(examId)
-                .map(
-                    exam ->
-                        courseTeacherRepository
-                            .findAllByCourse_Id(exam.getCourse().getId())
-                            .stream()
-                            .anyMatch(ct -> ct.getTeacher().getId().equals(details.getUser().id())))
-                .orElse(false);
-        return new AuthorizationDecision(isAssigned);
+
+        if (details.getUser().role() == Role.TEACHER) {
+          var examId = extractExamId(context.getRequest());
+          if (examId == null) {
+            return new AuthorizationDecision(false);
+          }
+          var isAssigned =
+              examRepository
+                  .findById(examId)
+                  .map(
+                      exam ->
+                          courseTeacherRepository
+                              .findAllByCourse_Id(exam.getCourse().getId())
+                              .stream()
+                              .anyMatch(
+                                  ct -> ct.getTeacher().getId().equals(details.getUser().id())))
+                  .orElse(false);
+          return new AuthorizationDecision(isAssigned);
+        }
       }
 
       return new AuthorizationDecision(false);
@@ -198,16 +207,34 @@ public class SecurityConfig {
 
   private static UUID extractExamId(HttpServletRequest request) {
     var uri = request.getRequestURI();
-    if (uri.startsWith(EXAMS_PATH_PREFIX) && uri.endsWith(GRADES_STUDENTS_SUFFIX)) {
-      var rawId =
-          uri.substring(EXAMS_PATH_PREFIX.length(), uri.length() - GRADES_STUDENTS_SUFFIX.length());
-      try {
-        return UUID.fromString(rawId);
-      } catch (IllegalArgumentException e) {
-        return null;
-      }
+    if (!uri.startsWith(EXAMS_PATH_PREFIX)) {
+      return null;
     }
-    return null;
+    var segments = uri.substring(EXAMS_PATH_PREFIX.length()).split("/");
+    if (segments.length < 2 || !GRADES_STUDENTS_SUFFIX.equals("/" + segments[1])) {
+      return null;
+    }
+    try {
+      return UUID.fromString(segments[0]);
+    } catch (IllegalArgumentException e) {
+      return null;
+    }
+  }
+
+  private static UUID extractIdStudent(HttpServletRequest request) {
+    var uri = request.getRequestURI();
+    if (!uri.startsWith(EXAMS_PATH_PREFIX)) {
+      return null;
+    }
+    var segments = uri.substring(EXAMS_PATH_PREFIX.length()).split("/");
+    if (segments.length < 3 || !GRADES_STUDENTS_SUFFIX.equals("/" + segments[1])) {
+      return null;
+    }
+    try {
+      return UUID.fromString(segments[2]);
+    } catch (IllegalArgumentException e) {
+      return null;
+    }
   }
 
   private static String extractId(HttpServletRequest request, String pathPrefix) {

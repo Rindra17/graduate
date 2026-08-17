@@ -42,6 +42,9 @@ class GradeIT extends FacadeIT {
   private static final UUID OTHER_TEACHER_ID =
       UUID.fromString("00000000-0000-0000-0000-000000000006");
   private static final UUID STUDENT_ID = UUID.fromString("00000000-0000-0000-0000-000000000007");
+  private static final UUID GRADE_ID = UUID.fromString("00000000-0000-0000-0000-000000000008");
+  private static final UUID SECOND_STUDENT_ID =
+      UUID.fromString("00000000-0000-0000-0000-000000000009");
 
   @Autowired TestRestTemplate testRestTemplate;
   @Autowired JwtService jwtService;
@@ -93,6 +96,7 @@ class GradeIT extends FacadeIT {
     insertUser(ASSIGNED_TEACHER_ID, "assigned@hei.school", Role.TEACHER);
     insertUser(OTHER_TEACHER_ID, "other@hei.school", Role.TEACHER);
     insertUser(STUDENT_ID, "student@hei.school", Role.STUDENT);
+    insertUser(SECOND_STUDENT_ID, "other-student@hei.school", Role.STUDENT);
 
     jdbcTemplate.update(
         "INSERT INTO teacher (user_id, reference) VALUES (?, ?) ON CONFLICT (user_id) DO NOTHING",
@@ -109,11 +113,24 @@ class GradeIT extends FacadeIT {
         "STD26001",
         "ACTIVE");
     jdbcTemplate.update(
+        "INSERT INTO student (user_id, reference, status) VALUES (?, ?, ?) "
+            + "ON CONFLICT (user_id) DO NOTHING",
+        SECOND_STUDENT_ID,
+        "STD26002",
+        "ACTIVE");
+    jdbcTemplate.update(
         "INSERT INTO course_teacher (id, teacher_id, course_id) VALUES (?, ?, ?) "
             + "ON CONFLICT (id) DO NOTHING",
         UUID.randomUUID(),
         ASSIGNED_TEACHER_ID,
         COURSE_ID);
+    jdbcTemplate.update(
+        "INSERT INTO grade (id, student_id, exam_id, score) VALUES (?, ?, ?, ?) "
+            + "ON CONFLICT (id) DO NOTHING",
+        GRADE_ID,
+        STUDENT_ID,
+        EXAM_ID,
+        BigDecimal.valueOf(16.5));
   }
 
   private void insertUser(UUID id, String email, Role role) {
@@ -278,6 +295,113 @@ class GradeIT extends FacadeIT {
             GRADES_URL + "/" + UUID.randomUUID() + "/grades-students",
             POST,
             new HttpEntity<>(request, bearerHeaders(tokenFor(Role.ADMIN, UUID.randomUUID()))),
+            Map.class);
+
+    assertEquals(NOT_FOUND, response.getStatusCode());
+  }
+
+  @Test
+  void getStudentGradeForExam_admin_returns200() {
+    var response =
+        testRestTemplate.exchange(
+            GRADES_URL + "/" + EXAM_ID + "/grades-students/" + STUDENT_ID,
+            GET,
+            new HttpEntity<>(bearerHeaders(tokenFor(Role.ADMIN, UUID.randomUUID()))),
+            Map.class);
+
+    assertEquals(OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+    assertEquals(STUDENT_ID.toString(), response.getBody().get("studentId"));
+    assertEquals(EXAM_ID.toString(), response.getBody().get("examId"));
+    assertEquals("16.5", response.getBody().get("score").toString());
+    assertEquals(GRADE_ID.toString(), response.getBody().get("id"));
+  }
+
+  @Test
+  void getStudentGradeForExam_assignedTeacher_returns200() {
+    var response =
+        testRestTemplate.exchange(
+            GRADES_URL + "/" + EXAM_ID + "/grades-students/" + STUDENT_ID,
+            GET,
+            new HttpEntity<>(bearerHeaders(tokenFor(Role.TEACHER, ASSIGNED_TEACHER_ID))),
+            Map.class);
+
+    assertEquals(OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+    assertEquals(STUDENT_ID.toString(), response.getBody().get("studentId"));
+  }
+
+  @Test
+  void getStudentGradeForExam_otherTeacher_returns403() {
+    var response =
+        testRestTemplate.exchange(
+            GRADES_URL + "/" + EXAM_ID + "/grades-students/" + STUDENT_ID,
+            GET,
+            new HttpEntity<>(bearerHeaders(tokenFor(Role.TEACHER, OTHER_TEACHER_ID))),
+            Map.class);
+
+    assertEquals(FORBIDDEN, response.getStatusCode());
+  }
+
+  @Test
+  void getStudentGradeForExam_ownStudent_returns200() {
+    var response =
+        testRestTemplate.exchange(
+            GRADES_URL + "/" + EXAM_ID + "/grades-students/" + STUDENT_ID,
+            GET,
+            new HttpEntity<>(bearerHeaders(tokenFor(Role.STUDENT, STUDENT_ID))),
+            Map.class);
+
+    assertEquals(OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+    assertEquals(STUDENT_ID.toString(), response.getBody().get("studentId"));
+    assertEquals(EXAM_ID.toString(), response.getBody().get("examId"));
+    assertEquals("16.5", response.getBody().get("score").toString());
+  }
+
+  @Test
+  void getStudentGradeForExam_otherStudent_returns403() {
+    var response =
+        testRestTemplate.exchange(
+            GRADES_URL + "/" + EXAM_ID + "/grades-students/" + SECOND_STUDENT_ID,
+            GET,
+            new HttpEntity<>(bearerHeaders(tokenFor(Role.STUDENT, STUDENT_ID))),
+            Map.class);
+
+    assertEquals(FORBIDDEN, response.getStatusCode());
+  }
+
+  @Test
+  void getStudentGradeForExam_unauthorized_returns401() {
+    var response =
+        testRestTemplate.exchange(
+            GRADES_URL + "/" + EXAM_ID + "/grades-students/" + STUDENT_ID,
+            GET,
+            new HttpEntity<>(jsonHeaders()),
+            Map.class);
+
+    assertEquals(UNAUTHORIZED, response.getStatusCode());
+  }
+
+  @Test
+  void getStudentGradeForExam_gradeNotFound_returns404() {
+    var response =
+        testRestTemplate.exchange(
+            GRADES_URL + "/" + EXAM_ID + "/grades-students/" + OTHER_TEACHER_ID,
+            GET,
+            new HttpEntity<>(bearerHeaders(tokenFor(Role.ADMIN, UUID.randomUUID()))),
+            Map.class);
+
+    assertEquals(NOT_FOUND, response.getStatusCode());
+  }
+
+  @Test
+  void getStudentGradeForExam_examNotFound_returns404() {
+    var response =
+        testRestTemplate.exchange(
+            GRADES_URL + "/" + UUID.randomUUID() + "/grades-students/" + STUDENT_ID,
+            GET,
+            new HttpEntity<>(bearerHeaders(tokenFor(Role.ADMIN, UUID.randomUUID()))),
             Map.class);
 
     assertEquals(NOT_FOUND, response.getStatusCode());

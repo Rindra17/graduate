@@ -26,6 +26,11 @@ public class ExamController {
     return gradeService.getGradesByExam(id);
   }
 
+  @GetMapping("/{id}/grades-students/{idStudent}")
+  public GradeResponse getStudentGradeForExam(@PathVariable UUID id, @PathVariable UUID idStudent) {
+    return gradeService.getStudentGradeForExam(id, idStudent);
+  }
+
   @PostMapping("/{id}/grades-students")
   public GradeResponse addGradeToExam(
       @PathVariable UUID id, @RequestBody GradeRequest gradeRequest) {

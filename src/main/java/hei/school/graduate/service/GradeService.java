@@ -28,8 +28,24 @@ public class GradeService {
 
   @Transactional(readOnly = true)
   public List<Grade> getGradesByExam(UUID examId) {
-    JExam exam = findExamOrThrow(examId);
+    findExamOrThrow(examId);
     return gradeRepository.findAllByExam_Id(examId).stream().map(gradeMapper::toDomain).toList();
+  }
+
+  @Transactional(readOnly = true)
+  public GradeResponse getStudentGradeForExam(UUID examId, UUID studentId) {
+    findExamOrThrow(examId);
+
+    JGrade grade =
+        gradeRepository
+            .findByExam_IdAndStudent_Id(examId, studentId)
+            .orElseThrow(
+                () ->
+                    new NotFoundException(
+                        "Grade for student " + studentId + " on exam " + examId + " not found"));
+
+    return new GradeResponse(
+        grade.getId(), grade.getStudent().getId(), grade.getExam().getId(), grade.getScore());
   }
 
   @Transactional
