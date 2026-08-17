@@ -72,6 +72,8 @@ public class SecurityConfig {
                     .hasRole("ADMIN")
                     .requestMatchers(HttpMethod.GET, "/exams/*/grades-students")
                     .access(examGradesAccessManager())
+                    .requestMatchers(HttpMethod.POST, "/exams/*/grades-students")
+                    .access(examGradesAccessManager())
                     .requestMatchers(HttpMethod.GET, "/students/*")
                     .access(studentByIdAccessManager())
                     .requestMatchers(HttpMethod.GET, "/admins")

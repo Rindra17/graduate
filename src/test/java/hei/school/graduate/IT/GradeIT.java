@@ -3,6 +3,7 @@ package hei.school.graduate.IT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.http.HttpMethod.GET;
+import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.OK;
@@ -10,6 +11,7 @@ import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 import hei.school.graduate.conf.FacadeIT;
+import hei.school.graduate.endpoint.rest.controller.dto.GradeRequest;
 import hei.school.graduate.model.CustomUserDetails;
 import hei.school.graduate.model.Role;
 import hei.school.graduate.model.User;
@@ -200,6 +202,82 @@ class GradeIT extends FacadeIT {
             GRADES_URL + "/" + UUID.randomUUID() + "/grades-students",
             GET,
             new HttpEntity<>(bearerHeaders(tokenFor(Role.ADMIN, UUID.randomUUID()))),
+            Map.class);
+
+    assertEquals(NOT_FOUND, response.getStatusCode());
+  }
+
+  @Test
+  void addGrade_admin_returns200WithGrade() {
+    var request = new GradeRequest(STUDENT_ID, BigDecimal.valueOf(18.5));
+
+    var response =
+        testRestTemplate.exchange(
+            GRADES_URL + "/" + EXAM_ID + "/grades-students",
+            POST,
+            new HttpEntity<>(request, bearerHeaders(tokenFor(Role.ADMIN, UUID.randomUUID()))),
+            Map.class);
+
+    assertEquals(OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+    assertEquals(STUDENT_ID.toString(), response.getBody().get("studentId"));
+    assertEquals(EXAM_ID.toString(), response.getBody().get("examId"));
+    assertEquals("18.5", response.getBody().get("score").toString());
+    assertNotNull(response.getBody().get("id"));
+  }
+
+  @Test
+  void addGrade_assignedTeacher_returns200() {
+    var request = new GradeRequest(STUDENT_ID, BigDecimal.valueOf(15.0));
+
+    var response =
+        testRestTemplate.exchange(
+            GRADES_URL + "/" + EXAM_ID + "/grades-students",
+            POST,
+            new HttpEntity<>(request, bearerHeaders(tokenFor(Role.TEACHER, ASSIGNED_TEACHER_ID))),
+            Map.class);
+
+    assertEquals(OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+  }
+
+  @Test
+  void addGrade_otherTeacher_returns403() {
+    var request = new GradeRequest(STUDENT_ID, BigDecimal.valueOf(15.0));
+
+    var response =
+        testRestTemplate.exchange(
+            GRADES_URL + "/" + EXAM_ID + "/grades-students",
+            POST,
+            new HttpEntity<>(request, bearerHeaders(tokenFor(Role.TEACHER, OTHER_TEACHER_ID))),
+            Map.class);
+
+    assertEquals(FORBIDDEN, response.getStatusCode());
+  }
+
+  @Test
+  void addGrade_studentNotFound_returns404() {
+    var request = new GradeRequest(UUID.randomUUID(), BigDecimal.valueOf(15.0));
+
+    var response =
+        testRestTemplate.exchange(
+            GRADES_URL + "/" + EXAM_ID + "/grades-students",
+            POST,
+            new HttpEntity<>(request, bearerHeaders(tokenFor(Role.ADMIN, UUID.randomUUID()))),
+            Map.class);
+
+    assertEquals(NOT_FOUND, response.getStatusCode());
+  }
+
+  @Test
+  void addGrade_examNotFound_returns404() {
+    var request = new GradeRequest(STUDENT_ID, BigDecimal.valueOf(15.0));
+
+    var response =
+        testRestTemplate.exchange(
+            GRADES_URL + "/" + UUID.randomUUID() + "/grades-students",
+            POST,
+            new HttpEntity<>(request, bearerHeaders(tokenFor(Role.ADMIN, UUID.randomUUID()))),
             Map.class);
 
     assertEquals(NOT_FOUND, response.getStatusCode());
