@@ -16,7 +16,8 @@ public class ExamService {
   private final ExamRepository examRepository;
 
   public ExamResponse getExam(UUID id) {
-    JExam exam = examRepository.findById(id).orElseThrow(() -> new NotFoundException("Exam not found"));
+    JExam exam =
+        examRepository.findById(id).orElseThrow(() -> new NotFoundException("Exam not found"));
     return new ExamResponse(
         exam.getId(),
         exam.getCourse().getTitle(),
@@ -26,7 +27,8 @@ public class ExamService {
   }
 
   public ExamResponse updateExam(UUID id, ExamRequest request) {
-    JExam exam = examRepository.findById(id).orElseThrow(() -> new NotFoundException("Exam not found"));
+    JExam exam =
+        examRepository.findById(id).orElseThrow(() -> new NotFoundException("Exam not found"));
 
     exam.setTitle(request.getTitle());
     exam.setWeight(request.getWeight());
