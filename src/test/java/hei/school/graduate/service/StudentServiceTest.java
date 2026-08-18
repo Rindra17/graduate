@@ -33,12 +33,9 @@ class StudentServiceTest {
 
   private static final String ACADEMIC_YEAR = "2024-2025";
 
-  @Mock
-  StudentRepository repository;
-  @Mock
-  GradeRepository gradeRepository;
-  @InjectMocks
-  StudentService service;
+  @Mock StudentRepository repository;
+  @Mock GradeRepository gradeRepository;
+  @InjectMocks StudentService service;
 
   private UUID studentId;
   private Map<String, JCourse> courses;
@@ -69,20 +66,22 @@ class StudentServiceTest {
   }
 
   private void register(JSemester semester, String code, String title, int credits) {
-    var c = JCourse.builder()
-        .id(UUID.randomUUID())
-        .semester(semester)
-        .code(code)
-        .title(title)
-        .credits(credits)
-        .build();
-    JExam exam = JExam.builder()
-        .id(UUID.randomUUID())
-        .course(c)
-        .title("Exam " + code)
-        .weight(BigDecimal.ONE)
-        .examDate(LocalDate.of(2024, 2, 1))
-        .build();
+    var c =
+        JCourse.builder()
+            .id(UUID.randomUUID())
+            .semester(semester)
+            .code(code)
+            .title(title)
+            .credits(credits)
+            .build();
+    JExam exam =
+        JExam.builder()
+            .id(UUID.randomUUID())
+            .course(c)
+            .title("Exam " + code)
+            .weight(BigDecimal.ONE)
+            .examDate(LocalDate.of(2024, 2, 1))
+            .build();
     courses.put(code, c);
     exams.put(code, exam);
   }
@@ -163,8 +162,9 @@ class StudentServiceTest {
   void getStudentGrades_studentNotFound_throwsNotFoundException() {
     when(repository.existsById(studentId)).thenReturn(false);
 
-    var exception = assertThrows(
-        NotFoundException.class, () -> service.getStudentGrades(studentId, ACADEMIC_YEAR));
+    var exception =
+        assertThrows(
+            NotFoundException.class, () -> service.getStudentGrades(studentId, ACADEMIC_YEAR));
 
     assertEquals("Student not found", exception.getMessage());
   }
@@ -203,7 +203,15 @@ class StudentServiceTest {
     assertEquals(10, result.courses().size());
     assertEquals(
         List.of(
-            "DONNEES1", "LV1", "MGT1", "PROG1", "PROG2", "SYS1", "SYS2", "THEORIE1", "WEB1",
+            "DONNEES1",
+            "LV1",
+            "MGT1",
+            "PROG1",
+            "PROG2",
+            "SYS1",
+            "SYS2",
+            "THEORIE1",
+            "WEB1",
             "WEB2"),
         result.courses().stream().map(c -> c.courseCode()).toList());
 
@@ -235,20 +243,22 @@ class StudentServiceTest {
 
   @Test
   void getStudentGrades_weightsNotSummingToOne_sumsInsteadOfAveraging() {
-    JExam lightExam = JExam.builder()
-        .id(UUID.randomUUID())
-        .course(courses.get("PROG1"))
-        .title("Light Exam")
-        .weight(new BigDecimal("0.3"))
-        .examDate(LocalDate.of(2024, 2, 1))
-        .build();
-    JExam heavyExam = JExam.builder()
-        .id(UUID.randomUUID())
-        .course(courses.get("PROG1"))
-        .title("Heavy Exam")
-        .weight(new BigDecimal("0.6"))
-        .examDate(LocalDate.of(2024, 6, 1))
-        .build();
+    JExam lightExam =
+        JExam.builder()
+            .id(UUID.randomUUID())
+            .course(courses.get("PROG1"))
+            .title("Light Exam")
+            .weight(new BigDecimal("0.3"))
+            .examDate(LocalDate.of(2024, 2, 1))
+            .build();
+    JExam heavyExam =
+        JExam.builder()
+            .id(UUID.randomUUID())
+            .course(courses.get("PROG1"))
+            .title("Heavy Exam")
+            .weight(new BigDecimal("0.6"))
+            .examDate(LocalDate.of(2024, 6, 1))
+            .build();
     when(repository.existsById(studentId)).thenReturn(true);
     when(gradeRepository.findAllByStudent_Id(studentId))
         .thenReturn(
@@ -269,20 +279,22 @@ class StudentServiceTest {
   @Test
   void getStudentGrades_withGradesFromOtherYear_filtersByAcademicYear() {
     var otherSemester = JSemester.builder().academicYear("2023-2024").build();
-    var otherCourse = JCourse.builder()
-        .id(UUID.randomUUID())
-        .semester(otherSemester)
-        .code("OLD1")
-        .title("Old Course")
-        .credits(3)
-        .build();
-    JExam otherExam = JExam.builder()
-        .id(UUID.randomUUID())
-        .course(otherCourse)
-        .title("Old Exam")
-        .weight(BigDecimal.ONE)
-        .examDate(LocalDate.of(2023, 3, 1))
-        .build();
+    var otherCourse =
+        JCourse.builder()
+            .id(UUID.randomUUID())
+            .semester(otherSemester)
+            .code("OLD1")
+            .title("Old Course")
+            .credits(3)
+            .build();
+    JExam otherExam =
+        JExam.builder()
+            .id(UUID.randomUUID())
+            .course(otherCourse)
+            .title("Old Exam")
+            .weight(BigDecimal.ONE)
+            .examDate(LocalDate.of(2023, 3, 1))
+            .build();
     when(repository.existsById(studentId)).thenReturn(true);
     when(gradeRepository.findAllByStudent_Id(studentId))
         .thenReturn(
@@ -302,20 +314,22 @@ class StudentServiceTest {
   @Test
   void getStudentGrades_withoutAcademicYear_defaultsToCurrentYear() {
     var semester = JSemester.builder().academicYear(currentAcademicYear()).build();
-    var currentCourse = JCourse.builder()
-        .id(UUID.randomUUID())
-        .semester(semester)
-        .code("CUR1")
-        .title("Current Course")
-        .credits(2)
-        .build();
-    JExam currentExam = JExam.builder()
-        .id(UUID.randomUUID())
-        .course(currentCourse)
-        .title("Current Exam")
-        .weight(BigDecimal.ONE)
-        .examDate(LocalDate.now())
-        .build();
+    var currentCourse =
+        JCourse.builder()
+            .id(UUID.randomUUID())
+            .semester(semester)
+            .code("CUR1")
+            .title("Current Course")
+            .credits(2)
+            .build();
+    JExam currentExam =
+        JExam.builder()
+            .id(UUID.randomUUID())
+            .course(currentCourse)
+            .title("Current Exam")
+            .weight(BigDecimal.ONE)
+            .examDate(LocalDate.now())
+            .build();
     when(repository.existsById(studentId)).thenReturn(true);
     when(gradeRepository.findAllByStudent_Id(studentId))
         .thenReturn(
@@ -333,20 +347,22 @@ class StudentServiceTest {
   @Test
   void getStudentGrades_withBlankAcademicYear_defaultsToCurrentYear() {
     var semester = JSemester.builder().academicYear(currentAcademicYear()).build();
-    var currentCourse = JCourse.builder()
-        .id(UUID.randomUUID())
-        .semester(semester)
-        .code("CUR2")
-        .title("Current Course")
-        .credits(2)
-        .build();
-    JExam currentExam = JExam.builder()
-        .id(UUID.randomUUID())
-        .course(currentCourse)
-        .title("Current Exam")
-        .weight(BigDecimal.ONE)
-        .examDate(LocalDate.now())
-        .build();
+    var currentCourse =
+        JCourse.builder()
+            .id(UUID.randomUUID())
+            .semester(semester)
+            .code("CUR2")
+            .title("Current Course")
+            .credits(2)
+            .build();
+    JExam currentExam =
+        JExam.builder()
+            .id(UUID.randomUUID())
+            .course(currentCourse)
+            .title("Current Exam")
+            .weight(BigDecimal.ONE)
+            .examDate(LocalDate.now())
+            .build();
     when(repository.existsById(studentId)).thenReturn(true);
     when(gradeRepository.findAllByStudent_Id(studentId))
         .thenReturn(
@@ -376,20 +392,22 @@ class StudentServiceTest {
 
   @Test
   void getStudentGrades_ordersCoursesByCode() {
-    var courseB = JCourse.builder()
-        .id(UUID.randomUUID())
-        .semester(courses.get("PROG1").getSemester())
-        .code("PROG2")
-        .title("Other Course")
-        .credits(4)
-        .build();
-    JExam examB = JExam.builder()
-        .id(UUID.randomUUID())
-        .course(courseB)
-        .title("Exam B")
-        .weight(BigDecimal.ONE)
-        .examDate(LocalDate.of(2024, 3, 1))
-        .build();
+    var courseB =
+        JCourse.builder()
+            .id(UUID.randomUUID())
+            .semester(courses.get("PROG1").getSemester())
+            .code("PROG2")
+            .title("Other Course")
+            .credits(4)
+            .build();
+    JExam examB =
+        JExam.builder()
+            .id(UUID.randomUUID())
+            .course(courseB)
+            .title("Exam B")
+            .weight(BigDecimal.ONE)
+            .examDate(LocalDate.of(2024, 3, 1))
+            .build();
     when(repository.existsById(studentId)).thenReturn(true);
     when(gradeRepository.findAllByStudent_Id(studentId))
         .thenReturn(
@@ -409,20 +427,22 @@ class StudentServiceTest {
 
   @Test
   void getStudentGrades_averageRoundedToTwoDecimals() {
-    JExam half = JExam.builder()
-        .id(UUID.randomUUID())
-        .course(courses.get("PROG1"))
-        .title("Half")
-        .weight(new BigDecimal("0.4"))
-        .examDate(LocalDate.of(2024, 2, 1))
-        .build();
-    JExam rest = JExam.builder()
-        .id(UUID.randomUUID())
-        .course(courses.get("PROG1"))
-        .title("Rest")
-        .weight(new BigDecimal("0.6"))
-        .examDate(LocalDate.of(2024, 6, 1))
-        .build();
+    JExam half =
+        JExam.builder()
+            .id(UUID.randomUUID())
+            .course(courses.get("PROG1"))
+            .title("Half")
+            .weight(new BigDecimal("0.4"))
+            .examDate(LocalDate.of(2024, 2, 1))
+            .build();
+    JExam rest =
+        JExam.builder()
+            .id(UUID.randomUUID())
+            .course(courses.get("PROG1"))
+            .title("Rest")
+            .weight(new BigDecimal("0.6"))
+            .examDate(LocalDate.of(2024, 6, 1))
+            .build();
     when(repository.existsById(studentId)).thenReturn(true);
     when(gradeRepository.findAllByStudent_Id(studentId))
         .thenReturn(
@@ -436,5 +456,4 @@ class StudentServiceTest {
     // 0.4 * 20.00 + 0.6 * 17.65 = 8.0000 + 10.5900 = 18.5900 -> rounded to 18.59
     assertEquals(new BigDecimal("18.59"), result.courses().get(0).average());
   }
-
 }
