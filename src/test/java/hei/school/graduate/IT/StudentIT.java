@@ -23,6 +23,8 @@ import hei.school.graduate.repository.UserRepository;
 import hei.school.graduate.security.JwtService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -33,12 +35,76 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
 
 class StudentIT extends FacadeIT {
 
   private static final String REGISTER_URL = "/auth/register";
   private static final String STUDENTS_URL = "/students";
+
+  private static final UUID GRADES_COHORT_ID =
+      UUID.fromString("10000000-0000-0000-0000-000000000001");
+  private static final UUID GRADES_BRANCH_ID =
+      UUID.fromString("10000000-0000-0000-0000-000000000002");
+  private static final UUID GRADES_SEMESTER_ID =
+      UUID.fromString("10000000-0000-0000-0000-000000000003");
+  private static final UUID OTHER_SEMESTER_ID =
+      UUID.fromString("10000000-0000-0000-0000-000000000004");
+  private static final UUID GRADES_COURSE_A_ID =
+      UUID.fromString("10000000-0000-0000-0000-000000000005");
+  private static final UUID GRADES_COURSE_B_ID =
+      UUID.fromString("10000000-0000-0000-0000-000000000006");
+  private static final UUID GRADES_COURSE_OTHER_ID =
+      UUID.fromString("10000000-0000-0000-0000-000000000007");
+  private static final UUID GRADES_EXAM_A1_ID =
+      UUID.fromString("10000000-0000-0000-0000-000000000008");
+  private static final UUID GRADES_EXAM_A2_ID =
+      UUID.fromString("10000000-0000-0000-0000-000000000009");
+  private static final UUID GRADES_EXAM_A3_ID =
+      UUID.fromString("10000000-0000-0000-0000-00000000000a");
+  private static final UUID GRADES_EXAM_B1_ID =
+      UUID.fromString("10000000-0000-0000-0000-00000000000b");
+  private static final UUID GRADES_EXAM_OTHER_ID =
+      UUID.fromString("10000000-0000-0000-0000-00000000000c");
+  private static final UUID GRADES_COURSE_C_ID =
+      UUID.fromString("10000000-0000-0000-0000-00000000000d");
+  private static final UUID GRADES_EXAM_C1_ID =
+      UUID.fromString("10000000-0000-0000-0000-00000000000e");
+  private static final UUID GRADES_EXAM_C2_ID =
+      UUID.fromString("10000000-0000-0000-0000-00000000000f");
+  private static final UUID GRADES_COURSE_DONNEES1_ID =
+      UUID.fromString("10000000-0000-0000-0000-000000000010");
+  private static final UUID GRADES_COURSE_WEB1_ID =
+      UUID.fromString("10000000-0000-0000-0000-000000000011");
+  private static final UUID GRADES_COURSE_SYS1_ID =
+      UUID.fromString("10000000-0000-0000-0000-000000000012");
+  private static final UUID GRADES_COURSE_LV1_ID =
+      UUID.fromString("10000000-0000-0000-0000-000000000013");
+  private static final UUID GRADES_COURSE_SYS2_ID =
+      UUID.fromString("10000000-0000-0000-0000-000000000014");
+  private static final UUID GRADES_COURSE_WEB2_ID =
+      UUID.fromString("10000000-0000-0000-0000-000000000015");
+  private static final UUID GRADES_COURSE_THEORIE1_ID =
+      UUID.fromString("10000000-0000-0000-0000-000000000016");
+  private static final UUID GRADES_COURSE_MGT1_ID =
+      UUID.fromString("10000000-0000-0000-0000-000000000017");
+  private static final UUID GRADES_EXAM_DONNEES1_ID =
+      UUID.fromString("10000000-0000-0000-0000-000000000018");
+  private static final UUID GRADES_EXAM_WEB1_ID =
+      UUID.fromString("10000000-0000-0000-0000-000000000019");
+  private static final UUID GRADES_EXAM_SYS1_ID =
+      UUID.fromString("10000000-0000-0000-0000-00000000001a");
+  private static final UUID GRADES_EXAM_LV1_ID =
+      UUID.fromString("10000000-0000-0000-0000-00000000001b");
+  private static final UUID GRADES_EXAM_SYS2_ID =
+      UUID.fromString("10000000-0000-0000-0000-00000000001c");
+  private static final UUID GRADES_EXAM_WEB2_ID =
+      UUID.fromString("10000000-0000-0000-0000-00000000001d");
+  private static final UUID GRADES_EXAM_THEORIE1_ID =
+      UUID.fromString("10000000-0000-0000-0000-00000000001e");
+  private static final UUID GRADES_EXAM_MGT1_ID =
+      UUID.fromString("10000000-0000-0000-0000-00000000001f");
 
   @Autowired TestRestTemplate testRestTemplate;
 
@@ -47,6 +113,8 @@ class StudentIT extends FacadeIT {
   @Autowired UserRepository userRepository;
 
   @Autowired UserMapper userMapper;
+
+  @Autowired JdbcTemplate jdbcTemplate;
 
   @PersistenceContext EntityManager entityManager;
 
@@ -257,6 +325,115 @@ class StudentIT extends FacadeIT {
     assertFalse(response.getBody().containsKey("password"));
   }
 
+  @Test
+  void getStudentGrades_courseNoteIsSumOfScoreTimesWeight() {
+    var id = registerStudent("grades-sum-formula@example.com");
+    ensureGradeReferenceData();
+    insertGrade(id, GRADES_EXAM_C1_ID, BigDecimal.valueOf(10));
+    insertGrade(id, GRADES_EXAM_C2_ID, BigDecimal.valueOf(20));
+
+    var response =
+        testRestTemplate.exchange(
+            STUDENTS_URL + "/" + id + "/grades?academicYear=" + currentAcademicYear(),
+            GET,
+            new HttpEntity<>(adminHeaders()),
+            Map.class);
+
+    assertEquals(OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+    var courses = (List<Map<String, Object>>) response.getBody().get("courses");
+    assertNotNull(courses);
+    assertEquals(1, courses.size());
+    assertEquals(GRADES_COURSE_C_ID.toString(), courses.get(0).get("courseId"));
+    assertEquals(11.0, ((Number) courses.get(0).get("average")).doubleValue(), 0.001);
+    assertEquals(0.37, ((Number) response.getBody().get("yearAverage")).doubleValue(), 0.001);
+    assertEquals(2, response.getBody().get("creditEarned"));
+  }
+
+  @Test
+  void getStudentGrades_wrongAcademicYear_returnsEmptyList() {
+    var id = registerStudent("grades-wrong-year@example.com");
+    ensureGradeReferenceData();
+    insertGrade(id, GRADES_EXAM_A1_ID, BigDecimal.valueOf(10));
+
+    var response =
+        testRestTemplate.exchange(
+            STUDENTS_URL + "/" + id + "/grades?academicYear=1999-2000",
+            GET,
+            new HttpEntity<>(adminHeaders()),
+            Map.class);
+
+    assertEquals(OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+    assertTrue(((List<?>) response.getBody().get("courses")).isEmpty());
+    assertTrue(response.getBody().get("yearAverage") == null);
+    assertEquals(0, response.getBody().get("creditEarned"));
+  }
+
+  @Test
+  void getStudentGrades_asOwner_returnsGrades() {
+    var id = registerStudent("grades-owner@example.com");
+    ensureGradeReferenceData();
+    insertGrade(id, GRADES_EXAM_A1_ID, BigDecimal.valueOf(10));
+
+    var response =
+        testRestTemplate.exchange(
+            STUDENTS_URL + "/" + id + "/grades",
+            GET,
+            new HttpEntity<>(studentHeaders(id)),
+            Map.class);
+
+    assertEquals(OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+    assertNotNull(response.getBody().get("courses"));
+  }
+
+  @Test
+  void getStudentGrades_asOtherStudent_returns403() {
+    var id = registerStudent("grades-other@example.com");
+
+    var response =
+        testRestTemplate.exchange(
+            STUDENTS_URL + "/" + id + "/grades",
+            GET,
+            new HttpEntity<>(studentHeaders(UUID.randomUUID())),
+            Map.class);
+
+    assertEquals(FORBIDDEN, response.getStatusCode());
+    assertNotNull(response.getBody());
+    assertEquals(403, response.getBody().get("status"));
+    assertEquals("Access denied", response.getBody().get("message"));
+  }
+
+  @Test
+  void getStudentGrades_unknownStudent_returns404() {
+    var response =
+        testRestTemplate.exchange(
+            STUDENTS_URL + "/" + UUID.randomUUID() + "/grades",
+            GET,
+            new HttpEntity<>(adminHeaders()),
+            Map.class);
+
+    assertEquals(NOT_FOUND, response.getStatusCode());
+    assertNotNull(response.getBody());
+    assertEquals("Student not found", response.getBody().get("message"));
+  }
+
+  @Test
+  void getStudentGrades_withoutAuth_returns401() {
+    var response =
+        testRestTemplate.exchange(
+            STUDENTS_URL + "/" + UUID.randomUUID() + "/grades",
+            GET,
+            new HttpEntity<>(jsonHeaders()),
+            Map.class);
+
+    assertEquals(UNAUTHORIZED, response.getStatusCode());
+    assertNotNull(response.getBody());
+    assertEquals(401, response.getBody().get("status"));
+    assertEquals("Invalid credentials", response.getBody().get("message"));
+  }
+
   private UUID registerStudent(String email) {
     var request =
         RegisterRequest.builder()
@@ -275,6 +452,136 @@ class StudentIT extends FacadeIT {
     assertNotNull(response.getBody());
     var user = (Map<String, Object>) response.getBody().get("user");
     return UUID.fromString((String) user.get("id"));
+  }
+
+  private void ensureGradeReferenceData() {
+    if (jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM cohort WHERE id = ?", Integer.class, GRADES_COHORT_ID)
+        == 0) {
+      jdbcTemplate.update(
+          "INSERT INTO cohort (id, name, start_year, end_year) VALUES (?, ?, ?, ?)",
+          GRADES_COHORT_ID,
+          "Grades Cohort",
+          2024,
+          2026);
+    }
+
+    if (jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM branch WHERE id = ?", Integer.class, GRADES_BRANCH_ID)
+        == 0) {
+      jdbcTemplate.update(
+          "INSERT INTO branch (id, code, name) VALUES (?, ?, ?)",
+          GRADES_BRANCH_ID,
+          "CS",
+          "Computer Science");
+    }
+
+    insertSemester(GRADES_SEMESTER_ID, GRADES_COHORT_ID, currentAcademicYear());
+    insertSemester(OTHER_SEMESTER_ID, GRADES_COHORT_ID, "2020-2021");
+
+    insertCourse(GRADES_COURSE_A_ID, GRADES_SEMESTER_ID, "PROG1", "Algorithmics & Programming", 6);
+    insertCourse(GRADES_COURSE_B_ID, GRADES_SEMESTER_ID, "PROG2", "Advanced Programming", 10);
+    insertCourse(GRADES_COURSE_C_ID, GRADES_SEMESTER_ID, "STAT1", "Statistics", 2);
+    insertCourse(GRADES_COURSE_DONNEES1_ID, GRADES_SEMESTER_ID, "DONNEES1", "Databases", 4);
+    insertCourse(GRADES_COURSE_WEB1_ID, GRADES_SEMESTER_ID, "WEB1", "Web Development", 6);
+    insertCourse(GRADES_COURSE_SYS1_ID, GRADES_SEMESTER_ID, "SYS1", "Operating Systems", 6);
+    insertCourse(GRADES_COURSE_LV1_ID, GRADES_SEMESTER_ID, "LV1", "English", 4);
+    insertCourse(GRADES_COURSE_SYS2_ID, GRADES_SEMESTER_ID, "SYS2", "Networks", 8);
+    insertCourse(GRADES_COURSE_WEB2_ID, GRADES_SEMESTER_ID, "WEB2", "Web Frameworks", 8);
+    insertCourse(GRADES_COURSE_THEORIE1_ID, GRADES_SEMESTER_ID, "THEORIE1", "Theory", 4);
+    insertCourse(GRADES_COURSE_MGT1_ID, GRADES_SEMESTER_ID, "MGT1", "Management", 4);
+    insertCourse(GRADES_COURSE_OTHER_ID, OTHER_SEMESTER_ID, "OLD1", "Old Course", 5);
+
+    insertExam(GRADES_EXAM_A1_ID, GRADES_COURSE_A_ID, "Exam A1", "0.4", LocalDate.of(2024, 1, 15));
+    insertExam(GRADES_EXAM_A2_ID, GRADES_COURSE_A_ID, "Exam A2", "0.6", LocalDate.of(2024, 6, 15));
+    insertExam(GRADES_EXAM_A3_ID, GRADES_COURSE_A_ID, "Exam A3", "0.5", LocalDate.of(2024, 11, 15));
+    insertExam(GRADES_EXAM_B1_ID, GRADES_COURSE_B_ID, "Exam B1", "1.0", LocalDate.of(2024, 3, 1));
+    insertExam(GRADES_EXAM_C1_ID, GRADES_COURSE_C_ID, "Exam C1", "0.3", LocalDate.of(2024, 2, 1));
+    insertExam(GRADES_EXAM_C2_ID, GRADES_COURSE_C_ID, "Exam C2", "0.4", LocalDate.of(2024, 7, 1));
+    insertExam(
+        GRADES_EXAM_DONNEES1_ID,
+        GRADES_COURSE_DONNEES1_ID,
+        "Exam DONNEES1",
+        "1.0",
+        LocalDate.of(2024, 2, 1));
+    insertExam(
+        GRADES_EXAM_WEB1_ID, GRADES_COURSE_WEB1_ID, "Exam WEB1", "1.0", LocalDate.of(2024, 2, 1));
+    insertExam(
+        GRADES_EXAM_SYS1_ID, GRADES_COURSE_SYS1_ID, "Exam SYS1", "1.0", LocalDate.of(2024, 2, 1));
+    insertExam(
+        GRADES_EXAM_LV1_ID, GRADES_COURSE_LV1_ID, "Exam LV1", "1.0", LocalDate.of(2024, 2, 1));
+    insertExam(
+        GRADES_EXAM_SYS2_ID, GRADES_COURSE_SYS2_ID, "Exam SYS2", "1.0", LocalDate.of(2024, 2, 1));
+    insertExam(
+        GRADES_EXAM_WEB2_ID, GRADES_COURSE_WEB2_ID, "Exam WEB2", "1.0", LocalDate.of(2024, 2, 1));
+    insertExam(
+        GRADES_EXAM_THEORIE1_ID,
+        GRADES_COURSE_THEORIE1_ID,
+        "Exam THEORIE1",
+        "1.0",
+        LocalDate.of(2024, 2, 1));
+    insertExam(
+        GRADES_EXAM_MGT1_ID, GRADES_COURSE_MGT1_ID, "Exam MGT1", "1.0", LocalDate.of(2024, 2, 1));
+    insertExam(
+        GRADES_EXAM_OTHER_ID, GRADES_COURSE_OTHER_ID, "Exam Old", "1.0", LocalDate.of(2020, 3, 1));
+  }
+
+  private void insertSemester(UUID id, UUID cohortId, String academicYear) {
+    if (jdbcTemplate.queryForObject("SELECT COUNT(*) FROM semester WHERE id = ?", Integer.class, id)
+        == 0) {
+      jdbcTemplate.update(
+          "INSERT INTO semester (id, cohort_id, semester_number, academic_year) VALUES (?, ?, ?,"
+              + " ?)",
+          id,
+          cohortId,
+          1,
+          academicYear);
+    }
+  }
+
+  private void insertCourse(UUID id, UUID semesterId, String code, String title, int credits) {
+    if (jdbcTemplate.queryForObject("SELECT COUNT(*) FROM course WHERE id = ?", Integer.class, id)
+        == 0) {
+      jdbcTemplate.update(
+          "INSERT INTO course (id, semester_id, branch_id, code, title, credits) VALUES (?, ?, ?,"
+              + " ?, ?, ?)",
+          id,
+          semesterId,
+          GRADES_BRANCH_ID,
+          code,
+          title,
+          credits);
+    }
+  }
+
+  private void insertExam(UUID id, UUID courseId, String title, String weight, LocalDate date) {
+    if (jdbcTemplate.queryForObject("SELECT COUNT(*) FROM exam WHERE id = ?", Integer.class, id)
+        == 0) {
+      jdbcTemplate.update(
+          "INSERT INTO exam (id, course_id, title, weight, exam_date) VALUES (?, ?, ?, ?, ?)",
+          id,
+          courseId,
+          title,
+          new BigDecimal(weight),
+          date);
+    }
+  }
+
+  private void insertGrade(UUID studentId, UUID examId, BigDecimal score) {
+    jdbcTemplate.update(
+        "DELETE FROM grade WHERE student_id = ? AND exam_id = ?", studentId, examId);
+    jdbcTemplate.update(
+        "INSERT INTO grade (id, student_id, exam_id, score) VALUES (?, ?, ?, ?)",
+        UUID.randomUUID(),
+        studentId,
+        examId,
+        score);
+  }
+
+  private static String currentAcademicYear() {
+    LocalDate today = LocalDate.now();
+    int start = today.getMonthValue() >= 9 ? today.getYear() : today.getYear() - 1;
+    return start + "-" + (start + 1);
   }
 
   private HttpHeaders adminHeaders() {

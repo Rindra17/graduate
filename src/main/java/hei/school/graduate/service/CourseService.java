@@ -3,6 +3,7 @@ package hei.school.graduate.service;
 import hei.school.graduate.endpoint.rest.controller.dto.CourseRequest;
 import hei.school.graduate.endpoint.rest.controller.dto.CourseTeacherRequest;
 import hei.school.graduate.endpoint.rest.controller.dto.ExamRequest;
+import hei.school.graduate.exception.ConflictException;
 import hei.school.graduate.exception.NotFoundException;
 import hei.school.graduate.mapper.CourseMapper;
 import hei.school.graduate.mapper.ExamMapper;
@@ -16,23 +17,24 @@ import hei.school.graduate.repository.CourseGroupRepository;
 import hei.school.graduate.repository.CourseRepository;
 import hei.school.graduate.repository.CourseTeacherRepository;
 import hei.school.graduate.repository.ExamRepository;
+import hei.school.graduate.repository.GroupRepository;
 import hei.school.graduate.repository.TeacherRepository;
 import hei.school.graduate.repository.model.JBranch;
 import hei.school.graduate.repository.model.JCourse;
 import hei.school.graduate.repository.model.JCourseGroup;
 import hei.school.graduate.repository.model.JCourseTeacher;
 import hei.school.graduate.repository.model.JExam;
+import hei.school.graduate.repository.model.JGroupe;
 import hei.school.graduate.repository.model.JSemester;
 import hei.school.graduate.repository.model.JTeacher;
 import hei.school.graduate.service.validator.CourseValidator;
 import jakarta.persistence.EntityManager;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @AllArgsConstructor
@@ -44,6 +46,7 @@ public class CourseService {
   private final ExamRepository examRepository;
   private final CourseTeacherRepository courseTeacherRepository;
   private final CourseGroupRepository courseGroupRepository;
+  private final GroupRepository groupRepository;
   private final CourseValidator validator;
   private final CourseMapper courseMapper;
   private final EntityManager entityManager;
@@ -116,8 +119,7 @@ public class CourseService {
         courseTeacherRepository.findAllByCourse_Id(id).stream()
             .anyMatch(ct -> ct.getTeacher().getId().equals(teacher.getId()));
     if (alreadyAssigned) {
-      throw new ResponseStatusException(
-          HttpStatus.CONFLICT,
+      throw new ConflictException(
           "Teacher " + teacher.getId() + " is already assigned to course " + id);
     }
 
@@ -133,8 +135,7 @@ public class CourseService {
             .findFirst()
             .orElseThrow(
                 () ->
-                    new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
+                    new NotFoundException(
                         "Teacher " + teacherId + " is not assigned to course " + id));
 
     courseTeacherRepository.delete(courseTeacher);
@@ -157,13 +158,14 @@ public class CourseService {
     JCourse course = findCourseOrThrow(id);
 
     List<JExam> existingExams = examRepository.findAllByCourse_Id(id);
-    validator.validateExamWeight(existingExams, examRequest.getWeight());
+    BigDecimal weight = CourseValidator.normalizeWeight(examRequest.getWeight());
+    validator.validateExamWeight(existingExams, weight);
 
     JExam exam =
         JExam.builder()
             .course(course)
             .title(examRequest.getTitle())
-            .weight(examRequest.getWeight())
+            .weight(weight)
             .examDate(
                 examRequest.getExamDate() != null ? examRequest.getExamDate() : LocalDate.now())
             .build();
@@ -177,5 +179,35 @@ public class CourseService {
 
   private NotFoundException notFound(String resource, UUID id) {
     return new NotFoundException(resource + " " + id + " not found");
+  }
+
+  public void assingGroupToCourse(UUID id, UUID groupId) {
+    JCourse course = findCourseOrThrow(id);
+
+    JGroupe groupe =
+        groupRepository.findById(groupId).orElseThrow(() -> notFound("Group", groupId));
+
+    boolean alreadyAssigned =
+        courseGroupRepository.findAllByCourse_Id(id).stream()
+            .anyMatch(cg -> cg.getGroupe().getId().equals(groupe.getId()));
+    if (alreadyAssigned) {
+      throw new ConflictException("Group " + groupId + " is already assigned to course " + id);
+    }
+
+    JCourseGroup courseGroup = JCourseGroup.builder().course(course).groupe(groupe).build();
+    courseGroupRepository.save(courseGroup);
+  }
+
+  public void removeGroupFromCourse(UUID id, UUID groupId) {
+    findCourseOrThrow(id);
+    JCourseGroup courseGroup =
+        courseGroupRepository.findAllByCourse_Id(id).stream()
+            .filter(cg -> cg.getGroupe().getId().equals(groupId))
+            .findFirst()
+            .orElseThrow(
+                () ->
+                    new NotFoundException("Group " + groupId + " is not assigned to course " + id));
+
+    courseGroupRepository.delete(courseGroup);
   }
 }

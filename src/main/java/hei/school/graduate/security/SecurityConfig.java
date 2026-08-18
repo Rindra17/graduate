@@ -40,6 +40,8 @@ public class SecurityConfig {
 
   private static final String STUDENTS_PATH_PREFIX = "/students/";
   private static final String TEACHERS_PATH_PREFIX = "/teachers/";
+  private static final String EXAMS_PATH_PREFIX = "/exams/";
+  private static final String GRADES_STUDENTS_SUFFIX = "/grades-students";
 
   private final CustomUserDetailsService userDetailsService;
   private final JwtAuthFilter jwtAuthFilter;
@@ -70,7 +72,29 @@ public class SecurityConfig {
                     .access(courseTeacherAccessManager())
                     .requestMatchers(HttpMethod.POST, "/courses/**")
                     .hasRole("ADMIN")
-                    .requestMatchers(HttpMethod.GET, "/students/*")
+                    .requestMatchers(
+                        HttpMethod.GET,
+                        "/exams/*/grades-students",
+                        "/exams/*/grades-students/*",
+                        "/exams/*/grades-students/*/history")
+                    .access(examGradesAccessManager())
+                    .requestMatchers(HttpMethod.PUT, "/exams/*/grades-students")
+                    .access(examGradesAccessManager())
+                    .requestMatchers(HttpMethod.POST, "/groups")
+                    .hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.PUT, "/groups/**")
+                    .hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.DELETE, "/groups/**")
+                    .hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.GET, "/students/*", "/students/*/group")
+                    .access(studentByIdAccessManager())
+                    .requestMatchers(HttpMethod.POST, "/students/*/transfer")
+                    .access(studentByIdAccessManager())
+                    .requestMatchers(HttpMethod.GET, "/students/*/group/history")
+                    .hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.GET, "/students/*/grades")
+                    .access(studentByIdAccessManager())
+                    .requestMatchers(HttpMethod.POST, "/students/*/grade-report")
                     .access(studentByIdAccessManager())
                     .requestMatchers(HttpMethod.GET, "/admins")
                     .hasRole("ADMIN")
@@ -165,6 +189,56 @@ public class SecurityConfig {
   }
 
   @Bean
+  public AuthorizationManager<RequestAuthorizationContext> examGradesAccessManager() {
+    return (authentication, context) -> {
+      var auth = authentication.get();
+      if (auth == null || !auth.isAuthenticated()) {
+        return new AuthorizationDecision(false);
+      }
+
+      var isAdmin =
+          auth.getAuthorities().stream()
+              .map(GrantedAuthority::getAuthority)
+              .anyMatch("ROLE_ADMIN"::equals);
+      if (isAdmin) {
+        return new AuthorizationDecision(true);
+      }
+
+      var principal = auth.getPrincipal();
+      if (principal instanceof CustomUserDetails details) {
+        if (details.getUser().role() == Role.STUDENT) {
+          var idStudent = extractIdStudent(context.getRequest());
+          return new AuthorizationDecision(
+              idStudent != null
+                  && !isHistoryPath(context.getRequest())
+                  && details.getUser().id().equals(idStudent));
+        }
+
+        if (details.getUser().role() == Role.TEACHER) {
+          var examId = extractExamId(context.getRequest());
+          if (examId == null) {
+            return new AuthorizationDecision(false);
+          }
+          var isAssigned =
+              examRepository
+                  .findById(examId)
+                  .map(
+                      exam ->
+                          courseTeacherRepository
+                              .findAllByCourse_Id(exam.getCourse().getId())
+                              .stream()
+                              .anyMatch(
+                                  ct -> ct.getTeacher().getId().equals(details.getUser().id())))
+                  .orElse(false);
+          return new AuthorizationDecision(isAssigned);
+        }
+      }
+
+      return new AuthorizationDecision(false);
+    };
+  }
+
+  @Bean
   public AuthorizationManager<RequestAuthorizationContext> examTeacherAccessManager() {
     return (authentication, context) -> {
       var auth = authentication.get();
@@ -239,10 +313,37 @@ public class SecurityConfig {
     };
   }
 
+  private static UUID extractIdStudent(HttpServletRequest request) {
+    var uri = request.getRequestURI();
+    if (!uri.startsWith(EXAMS_PATH_PREFIX)) {
+      return null;
+    }
+    var segments = uri.substring(EXAMS_PATH_PREFIX.length()).split("/");
+    if (segments.length < 3 || !GRADES_STUDENTS_SUFFIX.equals("/" + segments[1])) {
+      return null;
+    }
+    try {
+      return UUID.fromString(segments[2]);
+    } catch (IllegalArgumentException e) {
+      return null;
+    }
+  }
+
+  private static boolean isHistoryPath(HttpServletRequest request) {
+    var uri = request.getRequestURI();
+    if (!uri.startsWith(EXAMS_PATH_PREFIX)) {
+      return false;
+    }
+    var segments = uri.substring(EXAMS_PATH_PREFIX.length()).split("/");
+    return segments.length >= 4 && "history".equals(segments[3]);
+  }
+
   private static String extractId(HttpServletRequest request, String pathPrefix) {
     var uri = request.getRequestURI();
     if (uri.startsWith(pathPrefix)) {
-      return uri.substring(pathPrefix.length());
+      var rest = uri.substring(pathPrefix.length());
+      var slash = rest.indexOf('/');
+      return slash == -1 ? rest : rest.substring(0, slash);
     }
     return null;
   }
