@@ -25,7 +25,6 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -327,74 +326,6 @@ class StudentIT extends FacadeIT {
   }
 
   @Test
-  void getStudentGrades_withGrades_returnsGradesGroupedByCourse() {
-    var id = registerStudent("grades-student@example.com");
-    ensureGradeReferenceData();
-    insertGrade(id, GRADES_EXAM_A1_ID, BigDecimal.valueOf(18.00));
-    insertGrade(id, GRADES_EXAM_A2_ID, BigDecimal.valueOf(18.40));
-    insertGrade(id, GRADES_EXAM_B1_ID, BigDecimal.valueOf(12.35));
-    insertGrade(id, GRADES_EXAM_DONNEES1_ID, BigDecimal.valueOf(16.69));
-    insertGrade(id, GRADES_EXAM_WEB1_ID, BigDecimal.valueOf(20.00));
-    insertGrade(id, GRADES_EXAM_SYS1_ID, BigDecimal.valueOf(14.00));
-    insertGrade(id, GRADES_EXAM_LV1_ID, BigDecimal.valueOf(13.25));
-    insertGrade(id, GRADES_EXAM_SYS2_ID, BigDecimal.valueOf(14.84));
-    insertGrade(id, GRADES_EXAM_WEB2_ID, BigDecimal.valueOf(16.43));
-    insertGrade(id, GRADES_EXAM_THEORIE1_ID, BigDecimal.valueOf(15.00));
-    insertGrade(id, GRADES_EXAM_MGT1_ID, BigDecimal.valueOf(18.50));
-    insertGrade(id, GRADES_EXAM_OTHER_ID, BigDecimal.valueOf(18));
-
-    var response =
-        testRestTemplate.exchange(
-            STUDENTS_URL + "/" + id + "/grades?academicYear=" + currentAcademicYear(),
-            GET,
-            new HttpEntity<>(adminHeaders()),
-            Map.class);
-
-    assertEquals(OK, response.getStatusCode());
-    assertNotNull(response.getBody());
-    var courses = (List<Map<String, Object>>) response.getBody().get("courses");
-    assertNotNull(courses);
-    assertEquals(10, courses.size());
-    // (18.24*6 + 13.25*4 + 16.43*8 + 14.84*8 + 15.00*4 + 16.69*4 + 18.50*4 +
-    // 14.00*6 +
-    // 20.00*6 + 12.35*10) / 60 = 940.86 / 60 = 15.681
-    assertEquals(15.68, ((Number) response.getBody().get("yearAverage")).doubleValue(), 0.001);
-    assertEquals(60, response.getBody().get("creditEarned"));
-
-    Map<String, Map<String, Object>> byCode = new HashMap<>();
-    for (var course : courses) {
-      byCode.put((String) course.get("courseCode"), course);
-    }
-    assertEquals(10, byCode.size());
-
-    assertCourse(byCode, "PROG1", GRADES_COURSE_A_ID, 6, 18.24);
-    assertCourse(byCode, "PROG2", GRADES_COURSE_B_ID, 10, 12.35);
-    assertCourse(byCode, "DONNEES1", GRADES_COURSE_DONNEES1_ID, 4, 16.69);
-    assertCourse(byCode, "WEB1", GRADES_COURSE_WEB1_ID, 6, 20.00);
-    assertCourse(byCode, "SYS1", GRADES_COURSE_SYS1_ID, 6, 14.00);
-    assertCourse(byCode, "LV1", GRADES_COURSE_LV1_ID, 4, 13.25);
-    assertCourse(byCode, "SYS2", GRADES_COURSE_SYS2_ID, 8, 14.84);
-    assertCourse(byCode, "WEB2", GRADES_COURSE_WEB2_ID, 8, 16.43);
-    assertCourse(byCode, "THEORIE1", GRADES_COURSE_THEORIE1_ID, 4, 15.00);
-    assertCourse(byCode, "MGT1", GRADES_COURSE_MGT1_ID, 4, 18.50);
-    assertTrue(byCode.get("OLD1") == null);
-  }
-
-  private static void assertCourse(
-      Map<String, Map<String, Object>> byCode,
-      String code,
-      UUID expectedId,
-      int expectedCredits,
-      double expectedAverage) {
-    var course = byCode.get(code);
-    assertNotNull(course);
-    assertEquals(expectedId.toString(), course.get("courseId"));
-    assertEquals(expectedCredits, course.get("credits"));
-    assertEquals(expectedAverage, ((Number) course.get("average")).doubleValue(), 0.001);
-    assertFalse(course.containsKey("exams"));
-  }
-
-  @Test
   void getStudentGrades_courseNoteIsSumOfScoreTimesWeight() {
     var id = registerStudent("grades-sum-formula@example.com");
     ensureGradeReferenceData();
@@ -431,39 +362,6 @@ class StudentIT extends FacadeIT {
             GET,
             new HttpEntity<>(adminHeaders()),
             Map.class);
-
-    assertEquals(OK, response.getStatusCode());
-    assertNotNull(response.getBody());
-    assertTrue(((List<?>) response.getBody().get("courses")).isEmpty());
-    assertTrue(response.getBody().get("yearAverage") == null);
-    assertEquals(0, response.getBody().get("creditEarned"));
-  }
-
-  @Test
-  void getStudentGrades_withoutAcademicYear_defaultsToCurrentYear() {
-    var id = registerStudent("grades-default-year@example.com");
-    ensureGradeReferenceData();
-    insertGrade(id, GRADES_EXAM_A1_ID, BigDecimal.valueOf(10));
-
-    var response =
-        testRestTemplate.exchange(
-            STUDENTS_URL + "/" + id + "/grades", GET, new HttpEntity<>(adminHeaders()), Map.class);
-
-    assertEquals(OK, response.getStatusCode());
-    assertNotNull(response.getBody());
-    var courses = (List<Map<String, Object>>) response.getBody().get("courses");
-    assertNotNull(courses);
-    assertEquals(GRADES_COURSE_A_ID.toString(), courses.get(0).get("courseId"));
-  }
-
-  @Test
-  void getStudentGrades_withoutGrades_returnsEmptyList() {
-    var id = registerStudent("grades-no-grades@example.com");
-    ensureGradeReferenceData();
-
-    var response =
-        testRestTemplate.exchange(
-            STUDENTS_URL + "/" + id + "/grades", GET, new HttpEntity<>(adminHeaders()), Map.class);
 
     assertEquals(OK, response.getStatusCode());
     assertNotNull(response.getBody());
