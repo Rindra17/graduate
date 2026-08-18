@@ -144,7 +144,7 @@ public class StudentService {
   @SneakyThrows
   public String createReport(String reference, String year, String gradeReportContent) {
     var fileSuffix = ".pdf";
-    var filePrefix = "Grade-Report" + reference + "-" + year;
+    var filePrefix = "Grade-Report-" + reference + "-" + year;
     var bucketKey = filePrefix + fileSuffix;
     var fileToUpload = createTempFile(filePrefix, fileSuffix);
 

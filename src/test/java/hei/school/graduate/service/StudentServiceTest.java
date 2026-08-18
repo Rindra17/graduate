@@ -5,25 +5,41 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import hei.school.graduate.endpoint.event.EventProducer;
+import hei.school.graduate.endpoint.event.model.SendEmailRequested;
 import hei.school.graduate.exception.NotFoundException;
+import hei.school.graduate.file.bucket.BucketComponent;
 import hei.school.graduate.repository.GradeRepository;
 import hei.school.graduate.repository.StudentRepository;
 import hei.school.graduate.repository.model.JCourse;
 import hei.school.graduate.repository.model.JExam;
 import hei.school.graduate.repository.model.JGrade;
 import hei.school.graduate.repository.model.JSemester;
+import hei.school.graduate.repository.model.JStudent;
+import hei.school.graduate.repository.model.JUser;
+import java.io.File;
 import java.math.BigDecimal;
+import java.net.URL;
+import java.time.Duration;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -35,6 +51,8 @@ class StudentServiceTest {
 
   @Mock StudentRepository repository;
   @Mock GradeRepository gradeRepository;
+  @Mock EventProducer<SendEmailRequested> eventProducer;
+  @Mock BucketComponent bucketComponent;
   @InjectMocks StudentService service;
 
   private UUID studentId;
@@ -153,7 +171,7 @@ class StudentServiceTest {
     assertEquals(new BigDecimal("15.00"), byCode.get("THEORIE1").average());
     assertEquals(new BigDecimal("17.90"), byCode.get("MGT1").average());
     // (18.10*6 + 12.50*10 + 14.90*4 + 20*6 + 12*6 + 13.25*4 + 15.40*8 + 18*8 +
-    //  15*4 + 17.90*4) / 60 = 937 / 60 = 15.6166... -> rounded to 15.62
+    // 15*4 + 17.90*4) / 60 = 937 / 60 = 15.6166... -> rounded to 15.62
     assertEquals(new BigDecimal("15.62"), result.yearAverage());
     assertEquals(60, result.creditEarned());
   }
@@ -236,7 +254,7 @@ class StudentServiceTest {
     assertEquals(new BigDecimal("15.00"), byCode.get("THEORIE1").average());
     assertEquals(new BigDecimal("18.50"), byCode.get("MGT1").average());
     // (18.24*6 + 12.35*10 + 16.69*4 + 20*6 + 14*6 + 13.25*4 + 14.84*8 + 16.43*8 +
-    //  15*4 + 18.5*4) / 60 = 940.86 / 60 = 15.681 -> rounded to 15.68
+    // 15*4 + 18.5*4) / 60 = 940.86 / 60 = 15.681 -> rounded to 15.68
     assertEquals(new BigDecimal("15.68"), result.yearAverage());
     assertEquals(60, result.creditEarned());
   }
@@ -455,5 +473,99 @@ class StudentServiceTest {
     assertEquals(1, result.courses().size());
     // 0.4 * 20.00 + 0.6 * 17.65 = 8.0000 + 10.5900 = 18.5900 -> rounded to 18.59
     assertEquals(new BigDecimal("18.59"), result.courses().get(0).average());
+  }
+
+  private JStudent aStudent() {
+    var user =
+        JUser.builder()
+            .id(UUID.randomUUID())
+            .email("student@hei.school")
+            .firstName("John")
+            .lastName("Doe")
+            .build();
+    return JStudent.builder()
+        .id(studentId)
+        .user(user)
+        .reference("STD-2024-001")
+        .status("ACTIVE")
+        .build();
+  }
+
+  @Test
+  void gradeReportRequest_studentNotFound_throwsNotFoundException() {
+    when(repository.findById(studentId)).thenReturn(Optional.empty());
+
+    var exception =
+        assertThrows(
+            NotFoundException.class, () -> service.gradeReportRequest(studentId, ACADEMIC_YEAR));
+
+    assertEquals("Student with id: " + studentId + " not found", exception.getMessage());
+  }
+
+  @Test
+  void gradeReportRequest_sendsEmailEventWithPresignedReportLink() throws Exception {
+    var student = aStudent();
+    when(repository.findById(studentId)).thenReturn(Optional.of(student));
+    when(repository.existsById(studentId)).thenReturn(true);
+    when(gradeRepository.findAllByStudent_Id(studentId)).thenReturn(List.of());
+
+    var serviceSpy = spy(service);
+    doReturn("https://bucket.example.com/report.pdf")
+        .when(serviceSpy)
+        .createReport(anyString(), anyString(), anyString());
+
+    var result = serviceSpy.gradeReportRequest(studentId, ACADEMIC_YEAR);
+
+    assertEquals("Email sent to student@hei.school", result.message());
+    assertEquals(studentId, result.studentId());
+    assertEquals(ACADEMIC_YEAR, result.academicYear());
+
+    var captor = ArgumentCaptor.forClass(Collection.class);
+    verify(eventProducer).accept(captor.capture());
+    var events = (Collection<SendEmailRequested>) captor.getValue();
+    assertEquals(1, events.size());
+    var event = events.iterator().next();
+    assertEquals("student@hei.school", event.getTo());
+    assertEquals("John", event.getFirstName());
+    assertEquals("Doe", event.getLastName());
+    assertEquals("STD-2024-001", event.getReference());
+    assertEquals(ACADEMIC_YEAR, event.getAcademicYear());
+    assertEquals("https://bucket.example.com/report.pdf", event.getReportLink());
+  }
+
+  @Test
+  void gradeReportRequest_sendsEmailWithStudentFirstNameAndLastName() {
+    var student = aStudent();
+    when(repository.findById(studentId)).thenReturn(Optional.of(student));
+    when(repository.existsById(studentId)).thenReturn(true);
+    when(gradeRepository.findAllByStudent_Id(studentId)).thenReturn(List.of());
+
+    var serviceSpy = spy(service);
+    doReturn("https://bucket.example.com/report.pdf")
+        .when(serviceSpy)
+        .createReport(anyString(), anyString(), anyString());
+
+    serviceSpy.gradeReportRequest(studentId, ACADEMIC_YEAR);
+
+    var captor = ArgumentCaptor.forClass(Collection.class);
+    verify(eventProducer).accept(captor.capture());
+    var event = ((Collection<SendEmailRequested>) captor.getValue()).iterator().next();
+    assertEquals("John", event.getFirstName());
+    assertEquals("Doe", event.getLastName());
+    assertTrue(event.getReportLink().startsWith("https://"));
+  }
+
+  @Test
+  void createReport_uploadsPdfAndReturnsPresignedUrl() throws Exception {
+    var url = new URL("https://bucket.example.com/Grade-ReportSTD-2024-001-2024-2025.pdf");
+    when(bucketComponent.presign(anyString(), any(Duration.class))).thenReturn(url);
+
+    var result =
+        service.createReport("STD-2024-001", ACADEMIC_YEAR, "<html><body>hi</body></html>");
+
+    assertEquals(url.toString(), result);
+    var keyCaptor = ArgumentCaptor.forClass(String.class);
+    verify(bucketComponent).upload(any(File.class), keyCaptor.capture());
+    assertEquals("Grade-Report-STD-2024-001-2024-2025.pdf", keyCaptor.getValue());
   }
 }
