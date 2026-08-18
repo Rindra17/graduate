@@ -2,7 +2,6 @@ package hei.school.graduate.IT;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.http.HttpMethod.DELETE;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
@@ -18,14 +17,12 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 import hei.school.graduate.conf.FacadeIT;
 import hei.school.graduate.endpoint.rest.controller.dto.ExamRequest;
-import hei.school.graduate.endpoint.rest.controller.dto.GradeRequest;
 import hei.school.graduate.model.CustomUserDetails;
 import hei.school.graduate.model.Role;
 import hei.school.graduate.model.User;
 import hei.school.graduate.security.JwtService;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,21 +39,21 @@ class ExamIT extends FacadeIT {
   private static final String EXAMS_URL = "/exams";
 
   private static final UUID TEST_COHORT_ID =
-      UUID.fromString("00000000-0000-0000-0000-000000000000");
+      UUID.fromString("10000000-0000-0000-0000-000000000000");
   private static final UUID TEST_SEMESTER_ID =
-      UUID.fromString("00000000-0000-0000-0000-000000000001");
+      UUID.fromString("10000000-0000-0000-0000-000000000001");
   private static final UUID TEST_BRANCH_ID =
-      UUID.fromString("00000000-0000-0000-0000-000000000002");
+      UUID.fromString("10000000-0000-0000-0000-000000000002");
   private static final UUID TEST_COURSE_ID =
-      UUID.fromString("00000000-0000-0000-0000-000000000003");
-  private static final UUID TEST_EXAM_ID = UUID.fromString("00000000-0000-0000-0000-000000000004");
+      UUID.fromString("10000000-0000-0000-0000-000000000003");
+  private static final UUID TEST_EXAM_ID = UUID.fromString("10000000-0000-0000-0000-000000000004");
   private static final UUID TEST_STUDENT_ID =
-      UUID.fromString("00000000-0000-0000-0000-000000000005");
+      UUID.fromString("10000000-0000-0000-0000-000000000005");
   private static final UUID TEST_TEACHER_ID =
-      UUID.fromString("00000000-0000-0000-0000-000000000006");
+      UUID.fromString("10000000-0000-0000-0000-000000000006");
   private static final UUID OTHER_COURSE_ID =
-      UUID.fromString("00000000-0000-0000-0000-000000000007");
-  private static final UUID OTHER_EXAM_ID = UUID.fromString("00000000-0000-0000-0000-000000000008");
+      UUID.fromString("10000000-0000-0000-0000-000000000007");
+  private static final UUID OTHER_EXAM_ID = UUID.fromString("10000000-0000-0000-0000-000000000008");
 
   @Autowired TestRestTemplate testRestTemplate;
   @Autowired JwtService jwtService;
@@ -346,94 +343,6 @@ class ExamIT extends FacadeIT {
     var response =
         testRestTemplate.exchange(
             EXAMS_URL + "/" + TEST_EXAM_ID, DELETE, new HttpEntity<>(studentHeaders()), Map.class);
-
-    assertEquals(FORBIDDEN, response.getStatusCode());
-  }
-
-  @Test
-  void getGradesByExamId_withoutGrades_returnsEmptyList() {
-    var response =
-        testRestTemplate.exchange(
-            EXAMS_URL + "/" + TEST_EXAM_ID + "/grades",
-            GET,
-            new HttpEntity<>(adminHeaders()),
-            List.class);
-
-    assertEquals(OK, response.getStatusCode());
-    assertNotNull(response.getBody());
-    assertTrue(response.getBody().isEmpty());
-  }
-
-  @Test
-  void getGradesByExamId_notFound_returns404() {
-    var randomId = UUID.randomUUID();
-    var response =
-        testRestTemplate.exchange(
-            EXAMS_URL + "/" + randomId + "/grades",
-            GET,
-            new HttpEntity<>(adminHeaders()),
-            Map.class);
-
-    assertEquals(NOT_FOUND, response.getStatusCode());
-  }
-
-  @Test
-  void addGradeToExam_validRequest_returnsGrade() {
-    var request = new GradeRequest(TEST_STUDENT_ID, BigDecimal.valueOf(15.5));
-
-    var response =
-        testRestTemplate.exchange(
-            EXAMS_URL + "/" + TEST_EXAM_ID + "/grades",
-            POST,
-            new HttpEntity<>(request, adminHeaders()),
-            Map.class);
-
-    assertTrue(response.getStatusCode().is2xxSuccessful());
-    assertNotNull(response.getBody());
-    assertEquals(TEST_STUDENT_ID.toString(), response.getBody().get("studentId"));
-    assertEquals(TEST_EXAM_ID.toString(), response.getBody().get("examId"));
-    assertEquals(15.5, ((Number) response.getBody().get("score")).doubleValue());
-  }
-
-  @Test
-  void addGradeToExam_examNotFound_returns404() {
-    var randomId = UUID.randomUUID();
-    var request = new GradeRequest(TEST_STUDENT_ID, BigDecimal.valueOf(15.5));
-
-    var response =
-        testRestTemplate.exchange(
-            EXAMS_URL + "/" + randomId + "/grades",
-            POST,
-            new HttpEntity<>(request, adminHeaders()),
-            Map.class);
-
-    assertEquals(NOT_FOUND, response.getStatusCode());
-  }
-
-  @Test
-  void addGradeToExam_studentNotFound_returns404() {
-    var request = new GradeRequest(UUID.randomUUID(), BigDecimal.valueOf(15.5));
-
-    var response =
-        testRestTemplate.exchange(
-            EXAMS_URL + "/" + TEST_EXAM_ID + "/grades",
-            POST,
-            new HttpEntity<>(request, adminHeaders()),
-            Map.class);
-
-    assertEquals(NOT_FOUND, response.getStatusCode());
-  }
-
-  @Test
-  void addGradeToExam_studentRole_returns403() {
-    var request = new GradeRequest(TEST_STUDENT_ID, BigDecimal.valueOf(15.5));
-
-    var response =
-        testRestTemplate.exchange(
-            EXAMS_URL + "/" + TEST_EXAM_ID + "/grades",
-            POST,
-            new HttpEntity<>(request, studentHeaders()),
-            Map.class);
 
     assertEquals(FORBIDDEN, response.getStatusCode());
   }

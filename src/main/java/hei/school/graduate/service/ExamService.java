@@ -2,14 +2,10 @@ package hei.school.graduate.service;
 
 import hei.school.graduate.endpoint.rest.controller.dto.ExamRequest;
 import hei.school.graduate.endpoint.rest.controller.dto.ExamResponse;
-import hei.school.graduate.endpoint.rest.controller.dto.GradeRequest;
-import hei.school.graduate.endpoint.rest.controller.dto.GradeResponse;
 import hei.school.graduate.exception.NotFoundException;
 import hei.school.graduate.mapper.GradeMapper;
 import hei.school.graduate.model.Grade;
 import hei.school.graduate.repository.ExamRepository;
-import hei.school.graduate.repository.GradeRepository;
-import hei.school.graduate.repository.StudentRepository;
 import hei.school.graduate.repository.model.JExam;
 import hei.school.graduate.repository.model.JGrade;
 import hei.school.graduate.repository.model.JStudent;
@@ -68,28 +64,5 @@ public class ExamService {
   public void deleteExam(UUID id) {
     examRepository.findById(id).orElseThrow(() -> new NotFoundException("Exam not found"));
     examRepository.deleteById(id);
-  }
-
-  public List<Grade> getGradesByExamId(UUID id) {
-    if (!examRepository.existsById(id)) {
-      throw new NotFoundException("Exam not found");
-    }
-    return gradeRepository.findAllByExam_Id(id).stream().map(gradeMapper::toDomain).toList();
-  }
-
-  public GradeResponse addGradeToExam(UUID examId, GradeRequest request) {
-    JExam exam =
-        examRepository.findById(examId).orElseThrow(() -> new NotFoundException("Exam not found"));
-
-    JStudent student =
-        studentRepository
-            .findById(request.studentId())
-            .orElseThrow(() -> new NotFoundException("Student not found"));
-
-    JGrade grade = JGrade.builder().exam(exam).student(student).score(request.score()).build();
-
-    JGrade saved = gradeRepository.save(grade);
-    return new GradeResponse(
-        saved.getId(), saved.getStudent().getId(), saved.getExam().getId(), saved.getScore());
   }
 }
