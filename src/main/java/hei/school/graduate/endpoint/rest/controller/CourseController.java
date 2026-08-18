@@ -86,4 +86,15 @@ public class CourseController {
   public void createExam(@PathVariable UUID id, @RequestBody ExamRequest examRequest) {
     courseService.createExam(id, examRequest);
   }
+
+  @PostMapping("/{id}/groups")
+  public void addGroupToCourse(@PathVariable UUID id, @RequestBody UUID groupId) {
+    courseService.assingGroupToCourse(id, groupId);
+  }
+
+  @DeleteMapping("/{id}/groups/{groupId}")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void removeGroupFromCourse(@PathVariable UUID id, @PathVariable UUID groupId) {
+    courseService.removeGroupFromCourse(id, groupId);
+  }
 }

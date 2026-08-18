@@ -7,8 +7,10 @@ import static org.springframework.http.HttpMethod.DELETE;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.HttpMethod.PUT;
+import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.NO_CONTENT;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -45,6 +47,9 @@ class CourseIT extends FacadeIT {
       UUID.fromString("00000000-0000-0000-0000-000000000001");
   private static final UUID TEST_BRANCH_ID =
       UUID.fromString("00000000-0000-0000-0000-000000000002");
+  private static final UUID TEST_COURSE_ID =
+      UUID.fromString("00000000-0000-0000-0000-000000000020");
+  private static final UUID TEST_GROUP_ID = UUID.fromString("00000000-0000-0000-0000-000000000021");
 
   @Autowired TestRestTemplate testRestTemplate;
   @Autowired JwtService jwtService;
@@ -88,6 +93,31 @@ class CourseIT extends FacadeIT {
           TEST_COHORT_ID,
           1,
           "2024-2025");
+    }
+
+    if (jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM course WHERE id = ?", Integer.class, TEST_COURSE_ID)
+        == 0) {
+      jdbcTemplate.update(
+          "INSERT INTO course (id, semester_id, branch_id, code, title, credits) VALUES (?, ?, ?,"
+              + " ?, ?, ?)",
+          TEST_COURSE_ID,
+          TEST_SEMESTER_ID,
+          TEST_BRANCH_ID,
+          "TEST1",
+          "Test Course",
+          4);
+    }
+
+    if (jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM groupe WHERE id = ?", Integer.class, TEST_GROUP_ID)
+        == 0) {
+      jdbcTemplate.update(
+          "INSERT INTO groupe (id, name, cohort_id, branch_id) VALUES (?, ?, ?, ?)",
+          TEST_GROUP_ID,
+          "T1",
+          TEST_COHORT_ID,
+          TEST_BRANCH_ID);
     }
   }
 
@@ -257,6 +287,132 @@ class CourseIT extends FacadeIT {
             Map.class);
 
     assertEquals(NOT_FOUND, response.getStatusCode());
+  }
+
+  @Test
+  void addGroupToCourse_validRequest_returns200() {
+    var response =
+        testRestTemplate.exchange(
+            COURSES_URL + "/" + TEST_COURSE_ID + "/groups",
+            POST,
+            new HttpEntity<>(TEST_GROUP_ID, adminHeaders()),
+            Map.class);
+
+    assertTrue(response.getStatusCode().is2xxSuccessful());
+  }
+
+  @Test
+  void addGroupToCourse_duplicate_returns409() {
+    testRestTemplate.exchange(
+        COURSES_URL + "/" + TEST_COURSE_ID + "/groups",
+        POST,
+        new HttpEntity<>(TEST_GROUP_ID, adminHeaders()),
+        Map.class);
+
+    var response =
+        testRestTemplate.exchange(
+            COURSES_URL + "/" + TEST_COURSE_ID + "/groups",
+            POST,
+            new HttpEntity<>(TEST_GROUP_ID, adminHeaders()),
+            Map.class);
+
+    assertEquals(CONFLICT, response.getStatusCode());
+  }
+
+  @Test
+  void addGroupToCourse_nonExistentGroup_returns404() {
+    var response =
+        testRestTemplate.exchange(
+            COURSES_URL + "/" + TEST_COURSE_ID + "/groups",
+            POST,
+            new HttpEntity<>(UUID.randomUUID(), adminHeaders()),
+            Map.class);
+
+    assertEquals(NOT_FOUND, response.getStatusCode());
+  }
+
+  @Test
+  void addGroupToCourse_nonExistentCourse_returns404() {
+    var response =
+        testRestTemplate.exchange(
+            COURSES_URL + "/" + UUID.randomUUID() + "/groups",
+            POST,
+            new HttpEntity<>(TEST_GROUP_ID, adminHeaders()),
+            Map.class);
+
+    assertEquals(NOT_FOUND, response.getStatusCode());
+  }
+
+  @Test
+  void addGroupToCourse_studentRole_returns403() {
+    var response =
+        testRestTemplate.exchange(
+            COURSES_URL + "/" + TEST_COURSE_ID + "/groups",
+            POST,
+            new HttpEntity<>(TEST_GROUP_ID, studentHeaders()),
+            Map.class);
+
+    assertEquals(FORBIDDEN, response.getStatusCode());
+  }
+
+  @Test
+  void removeGroupFromCourse_validRequest_returns204() {
+    testRestTemplate.exchange(
+        COURSES_URL + "/" + TEST_COURSE_ID + "/groups",
+        POST,
+        new HttpEntity<>(TEST_GROUP_ID, adminHeaders()),
+        Map.class);
+
+    var response =
+        testRestTemplate.exchange(
+            COURSES_URL + "/" + TEST_COURSE_ID + "/groups/" + TEST_GROUP_ID,
+            DELETE,
+            new HttpEntity<>(adminHeaders()),
+            Map.class);
+
+    assertEquals(NO_CONTENT, response.getStatusCode());
+  }
+
+  @Test
+  void removeGroupFromCourse_notAssigned_returns404() {
+    var response =
+        testRestTemplate.exchange(
+            COURSES_URL + "/" + TEST_COURSE_ID + "/groups/" + UUID.randomUUID(),
+            DELETE,
+            new HttpEntity<>(adminHeaders()),
+            Map.class);
+
+    assertEquals(NOT_FOUND, response.getStatusCode());
+  }
+
+  @Test
+  void removeGroupFromCourse_nonExistentCourse_returns404() {
+    var response =
+        testRestTemplate.exchange(
+            COURSES_URL + "/" + UUID.randomUUID() + "/groups/" + TEST_GROUP_ID,
+            DELETE,
+            new HttpEntity<>(adminHeaders()),
+            Map.class);
+
+    assertEquals(NOT_FOUND, response.getStatusCode());
+  }
+
+  @Test
+  void removeGroupFromCourse_studentRole_returns403() {
+    testRestTemplate.exchange(
+        COURSES_URL + "/" + TEST_COURSE_ID + "/groups",
+        POST,
+        new HttpEntity<>(TEST_GROUP_ID, adminHeaders()),
+        Map.class);
+
+    var response =
+        testRestTemplate.exchange(
+            COURSES_URL + "/" + TEST_COURSE_ID + "/groups/" + TEST_GROUP_ID,
+            DELETE,
+            new HttpEntity<>(studentHeaders()),
+            Map.class);
+
+    assertEquals(FORBIDDEN, response.getStatusCode());
   }
 
   private CourseRequest courseRequest(String code, String title, int credits) {
