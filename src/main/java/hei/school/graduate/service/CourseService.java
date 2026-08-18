@@ -26,6 +26,7 @@ import hei.school.graduate.repository.model.JSemester;
 import hei.school.graduate.repository.model.JTeacher;
 import hei.school.graduate.service.validator.CourseValidator;
 import jakarta.persistence.EntityManager;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -157,13 +158,14 @@ public class CourseService {
     JCourse course = findCourseOrThrow(id);
 
     List<JExam> existingExams = examRepository.findAllByCourse_Id(id);
-    validator.validateExamWeight(existingExams, examRequest.getWeight());
+    BigDecimal weight = CourseValidator.normalizeWeight(examRequest.getWeight());
+    validator.validateExamWeight(existingExams, weight);
 
     JExam exam =
         JExam.builder()
             .course(course)
             .title(examRequest.getTitle())
-            .weight(examRequest.getWeight())
+            .weight(weight)
             .examDate(
                 examRequest.getExamDate() != null ? examRequest.getExamDate() : LocalDate.now())
             .build();

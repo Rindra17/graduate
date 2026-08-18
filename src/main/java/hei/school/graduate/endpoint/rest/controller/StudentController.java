@@ -1,5 +1,6 @@
 package hei.school.graduate.endpoint.rest.controller;
 
+import hei.school.graduate.endpoint.rest.controller.dto.StudentGradesResponse;
 import hei.school.graduate.endpoint.rest.controller.dto.StudentPage;
 import hei.school.graduate.endpoint.rest.controller.dto.StudentResponse;
 import hei.school.graduate.service.StudentService;
@@ -27,5 +28,11 @@ public class StudentController {
   @GetMapping("/{studentId}")
   public StudentResponse getStudent(@PathVariable UUID studentId) {
     return service.getStudent(studentId);
+  }
+
+  @GetMapping("/{studentId}/grades")
+  public StudentGradesResponse getStudentGrades(
+      @PathVariable UUID studentId, @RequestParam(required = false) String academicYear) {
+    return service.getStudentGrades(studentId, academicYear);
   }
 }

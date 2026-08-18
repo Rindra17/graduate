@@ -5,7 +5,6 @@ import hei.school.graduate.endpoint.rest.controller.dto.ExamResponse;
 import hei.school.graduate.endpoint.rest.controller.dto.GradeRequest;
 import hei.school.graduate.endpoint.rest.controller.dto.GradeResponse;
 import hei.school.graduate.exception.NotFoundException;
-import hei.school.graduate.mapper.ExamMapper;
 import hei.school.graduate.mapper.GradeMapper;
 import hei.school.graduate.model.Grade;
 import hei.school.graduate.repository.ExamRepository;
@@ -14,6 +13,8 @@ import hei.school.graduate.repository.StudentRepository;
 import hei.school.graduate.repository.model.JExam;
 import hei.school.graduate.repository.model.JGrade;
 import hei.school.graduate.repository.model.JStudent;
+import hei.school.graduate.service.validator.CourseValidator;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -26,8 +27,8 @@ public class ExamService {
   private final ExamRepository examRepository;
   private final GradeRepository gradeRepository;
   private final StudentRepository studentRepository;
-  private final ExamMapper examMapper;
   private final GradeMapper gradeMapper;
+  private final CourseValidator courseValidator;
 
   public ExamResponse getExam(UUID id) {
     JExam exam =
@@ -44,8 +45,15 @@ public class ExamService {
     JExam exam =
         examRepository.findById(id).orElseThrow(() -> new NotFoundException("Exam not found"));
 
+    List<JExam> otherExams =
+        examRepository.findAllByCourse_Id(exam.getCourse().getId()).stream()
+            .filter(e -> !e.getId().equals(id))
+            .toList();
+    BigDecimal weight = CourseValidator.normalizeWeight(request.getWeight());
+    courseValidator.validateExamWeight(otherExams, weight);
+
     exam.setTitle(request.getTitle());
-    exam.setWeight(request.getWeight());
+    exam.setWeight(weight);
     exam.setExamDate(request.getExamDate());
 
     JExam updated = examRepository.save(exam);
@@ -58,8 +66,7 @@ public class ExamService {
   }
 
   public void deleteExam(UUID id) {
-    JExam exam =
-        examRepository.findById(id).orElseThrow(() -> new NotFoundException("Exam not found"));
+    examRepository.findById(id).orElseThrow(() -> new NotFoundException("Exam not found"));
     examRepository.deleteById(id);
   }
 

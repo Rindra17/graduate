@@ -10,7 +10,14 @@ import org.springframework.stereotype.Component;
 @Component
 public class CourseValidator {
 
-  private static final BigDecimal MAX_TOTAL_WEIGHT = BigDecimal.valueOf(100);
+  private static final BigDecimal MAX_TOTAL_WEIGHT = BigDecimal.ONE;
+
+  public static BigDecimal normalizeWeight(BigDecimal weight) {
+    if (weight == null || weight.compareTo(BigDecimal.ONE) <= 0) {
+      return weight;
+    }
+    return weight.divide(BigDecimal.valueOf(100));
+  }
 
   public void validate(CourseRequest newCourse) {
     if (newCourse == null) {
@@ -53,9 +60,8 @@ public class CourseValidator {
       throw new BadRequestException(
           "Total exam weight for this course would be "
               + newTotal
-              + "%, which exceeds the maximum of "
-              + MAX_TOTAL_WEIGHT
-              + "%");
+              + ", which exceeds the maximum of "
+              + MAX_TOTAL_WEIGHT);
     }
   }
 }

@@ -7,6 +7,7 @@ import static org.springframework.http.HttpMethod.DELETE;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.HttpMethod.PUT;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CREATED;
 import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
@@ -473,6 +474,48 @@ class ExamIT extends FacadeIT {
             Map.class);
 
     assertEquals(FORBIDDEN, response.getStatusCode());
+  }
+
+  @Test
+  void createExam_totalCourseWeightExceedsOne_returns400() {
+    var request =
+        ExamRequest.builder()
+            .title("Too Heavy Exam")
+            .weight(BigDecimal.valueOf(0.6))
+            .examDate(LocalDate.now().plusDays(5))
+            .build();
+
+    var response =
+        testRestTemplate.exchange(
+            "/courses/" + TEST_COURSE_ID + "/exams",
+            POST,
+            new HttpEntity<>(request, adminHeaders()),
+            Map.class);
+
+    assertEquals(BAD_REQUEST, response.getStatusCode());
+  }
+
+  @Test
+  void createExam_weightGreaterThanOne_isDividedByHundred() {
+    var request =
+        ExamRequest.builder()
+            .title("Percent Weight Exam")
+            .weight(BigDecimal.valueOf(40))
+            .examDate(LocalDate.now().plusDays(5))
+            .build();
+
+    var response =
+        testRestTemplate.exchange(
+            "/courses/" + OTHER_COURSE_ID + "/exams",
+            POST,
+            new HttpEntity<>(request, adminHeaders()),
+            Map.class);
+
+    assertEquals(CREATED, response.getStatusCode());
+    BigDecimal storedWeight =
+        jdbcTemplate.queryForObject(
+            "SELECT weight FROM exam WHERE title = ?", BigDecimal.class, "Percent Weight Exam");
+    assertEquals(0, BigDecimal.valueOf(0.4).compareTo(storedWeight));
   }
 
   @Test
