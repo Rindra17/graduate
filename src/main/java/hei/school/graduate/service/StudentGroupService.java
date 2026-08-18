@@ -1,5 +1,6 @@
 package hei.school.graduate.service;
 
+import hei.school.graduate.endpoint.rest.controller.dto.GroupTransferResponse;
 import hei.school.graduate.endpoint.rest.controller.dto.TransferRequest;
 import hei.school.graduate.endpoint.rest.controller.dto.TransferResponse;
 import hei.school.graduate.exception.BadRequestException;
@@ -11,6 +12,8 @@ import hei.school.graduate.repository.StudentGroupHistoryRepository;
 import hei.school.graduate.repository.StudentRepository;
 import hei.school.graduate.repository.model.JStudentGroupHistory;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -36,6 +39,34 @@ public class StudentGroupService {
             .orElseThrow(() -> new NotFoundException("Group not found"));
 
     return groupeMapper.toDomain(history.getGroup());
+  }
+
+  @Transactional(readOnly = true)
+  public List<GroupTransferResponse> getStudentGroupHistory(UUID studentId) {
+    studentRepository
+        .findById(studentId)
+        .orElseThrow(() -> new NotFoundException("Student not found"));
+
+    var history = studentGroupHistoryRepository.findAllByStudent_IdOrderByStartDateAsc(studentId);
+
+    List<GroupTransferResponse> responses = new ArrayList<>();
+    UUID previousGroupId = null;
+    String previousGroupName = null;
+    for (JStudentGroupHistory entry : history) {
+      responses.add(
+          new GroupTransferResponse(
+              entry.getId(),
+              studentId,
+              previousGroupId,
+              previousGroupName,
+              entry.getGroup().getId(),
+              entry.getGroup().getName(),
+              entry.getStartDate(),
+              entry.getChangeReason()));
+      previousGroupId = entry.getGroup().getId();
+      previousGroupName = entry.getGroup().getName();
+    }
+    return responses;
   }
 
   @Transactional

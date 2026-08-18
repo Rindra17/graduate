@@ -90,6 +90,8 @@ public class SecurityConfig {
                     .access(studentByIdAccessManager())
                     .requestMatchers(HttpMethod.POST, "/students/*/transfer")
                     .access(studentByIdAccessManager())
+                    .requestMatchers(HttpMethod.GET, "/students/*/group/history")
+                    .hasRole("ADMIN")
                     .requestMatchers(HttpMethod.GET, "/admins")
                     .hasRole("ADMIN")
                     .requestMatchers(HttpMethod.GET, "/teachers")

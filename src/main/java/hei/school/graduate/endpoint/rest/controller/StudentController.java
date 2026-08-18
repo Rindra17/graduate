@@ -1,5 +1,6 @@
 package hei.school.graduate.endpoint.rest.controller;
 
+import hei.school.graduate.endpoint.rest.controller.dto.GroupTransferResponse;
 import hei.school.graduate.endpoint.rest.controller.dto.StudentPage;
 import hei.school.graduate.endpoint.rest.controller.dto.StudentResponse;
 import hei.school.graduate.endpoint.rest.controller.dto.TransferRequest;
@@ -7,6 +8,7 @@ import hei.school.graduate.endpoint.rest.controller.dto.TransferResponse;
 import hei.school.graduate.model.Groupe;
 import hei.school.graduate.service.StudentGroupService;
 import hei.school.graduate.service.StudentService;
+import java.util.List;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -39,6 +41,11 @@ public class StudentController {
   @GetMapping("/{studentId}/group")
   public Groupe getStudentGroup(@PathVariable UUID studentId) {
     return studentGroupService.getStudentGroup(studentId);
+  }
+
+  @GetMapping("/{studentId}/group/history")
+  public List<GroupTransferResponse> getStudentGroupHistory(@PathVariable UUID studentId) {
+    return studentGroupService.getStudentGroupHistory(studentId);
   }
 
   @PostMapping("/{studentId}/transfer")
