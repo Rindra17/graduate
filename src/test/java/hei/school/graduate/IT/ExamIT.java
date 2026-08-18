@@ -38,21 +38,21 @@ class ExamIT extends FacadeIT {
   private static final String EXAMS_URL = "/exams";
 
   private static final UUID TEST_COHORT_ID =
-      UUID.fromString("00000000-0000-0000-0000-000000000000");
+      UUID.fromString("10000000-0000-0000-0000-000000000000");
   private static final UUID TEST_SEMESTER_ID =
-      UUID.fromString("00000000-0000-0000-0000-000000000001");
+      UUID.fromString("10000000-0000-0000-0000-000000000001");
   private static final UUID TEST_BRANCH_ID =
-      UUID.fromString("00000000-0000-0000-0000-000000000002");
+      UUID.fromString("10000000-0000-0000-0000-000000000002");
   private static final UUID TEST_COURSE_ID =
-      UUID.fromString("00000000-0000-0000-0000-000000000003");
-  private static final UUID TEST_EXAM_ID = UUID.fromString("00000000-0000-0000-0000-000000000004");
+      UUID.fromString("10000000-0000-0000-0000-000000000003");
+  private static final UUID TEST_EXAM_ID = UUID.fromString("10000000-0000-0000-0000-000000000004");
   private static final UUID TEST_STUDENT_ID =
-      UUID.fromString("00000000-0000-0000-0000-000000000005");
+      UUID.fromString("10000000-0000-0000-0000-000000000005");
   private static final UUID TEST_TEACHER_ID =
-      UUID.fromString("00000000-0000-0000-0000-000000000006");
+      UUID.fromString("10000000-0000-0000-0000-000000000006");
   private static final UUID OTHER_COURSE_ID =
-      UUID.fromString("00000000-0000-0000-0000-000000000007");
-  private static final UUID OTHER_EXAM_ID = UUID.fromString("00000000-0000-0000-0000-000000000008");
+      UUID.fromString("10000000-0000-0000-0000-000000000007");
+  private static final UUID OTHER_EXAM_ID = UUID.fromString("10000000-0000-0000-0000-000000000008");
 
   @Autowired TestRestTemplate testRestTemplate;
   @Autowired JwtService jwtService;
