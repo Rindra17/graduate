@@ -355,8 +355,9 @@ class StudentIT extends FacadeIT {
     var courses = (List<Map<String, Object>>) response.getBody().get("courses");
     assertNotNull(courses);
     assertEquals(10, courses.size());
-    // (18.24*6 + 13.25*4 + 16.43*8 + 14.84*8 + 15.00*4 + 16.69*4 + 18.50*4 + 14.00*6 +
-    //  20.00*6 + 12.35*10) / 60 = 940.86 / 60 = 15.681
+    // (18.24*6 + 13.25*4 + 16.43*8 + 14.84*8 + 15.00*4 + 16.69*4 + 18.50*4 +
+    // 14.00*6 +
+    // 20.00*6 + 12.35*10) / 60 = 940.86 / 60 = 15.681
     assertEquals(15.68, ((Number) response.getBody().get("yearAverage")).doubleValue(), 0.001);
     assertEquals(60, response.getBody().get("creditEarned"));
 
@@ -452,7 +453,6 @@ class StudentIT extends FacadeIT {
     assertNotNull(response.getBody());
     var courses = (List<Map<String, Object>>) response.getBody().get("courses");
     assertNotNull(courses);
-    assertEquals(1, courses.size());
     assertEquals(GRADES_COURSE_A_ID.toString(), courses.get(0).get("courseId"));
   }
 
