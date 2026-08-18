@@ -86,11 +86,15 @@ public class SecurityConfig {
                     .hasRole("ADMIN")
                     .requestMatchers(HttpMethod.DELETE, "/groups/**")
                     .hasRole("ADMIN")
-                    .requestMatchers(HttpMethod.GET, "/students/*")
+                    .requestMatchers(HttpMethod.GET, "/students/*", "/students/*/group")
                     .access(studentByIdAccessManager())
+                    .requestMatchers(HttpMethod.POST, "/students/*/transfer")
+                    .access(studentByIdAccessManager())
+                    .requestMatchers(HttpMethod.GET, "/students/*/group/history")
+                    .hasRole("ADMIN")
                     .requestMatchers(HttpMethod.GET, "/students/*/grades")
                     .access(studentByIdAccessManager())
-                    .requestMatchers(HttpMethod.POST, "students/*/grade-report")
+                    .requestMatchers(HttpMethod.POST, "/students/*/grade-report")
                     .access(studentByIdAccessManager())
                     .requestMatchers(HttpMethod.GET, "/admins")
                     .hasRole("ADMIN")
@@ -334,7 +338,7 @@ public class SecurityConfig {
     var uri = request.getRequestURI();
     if (uri.startsWith(pathPrefix)) {
       var rest = uri.substring(pathPrefix.length());
-      int slash = rest.indexOf('/');
+      var slash = rest.indexOf('/');
       return slash == -1 ? rest : rest.substring(0, slash);
     }
     return null;
