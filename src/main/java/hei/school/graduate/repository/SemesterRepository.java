@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 public interface SemesterRepository extends JpaRepository<JSemester, UUID> {
 
   @Query(
-      "SELECT DISTINCT s.academicYear FROM JSemester s WHERE s.cohort.id = :cohortId ORDER BY s.academicYear")
+      "SELECT DISTINCT s.academicYear FROM JSemester s WHERE s.cohort.id = :cohortId ORDER BY"
+          + " s.academicYear")
   List<String> findAcademicYearsByCohortId(@Param("cohortId") UUID cohortId);
 }

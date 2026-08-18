@@ -1,7 +1,6 @@
 package hei.school.graduate.IT;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -25,10 +24,10 @@ import hei.school.graduate.security.JwtService;
 import java.io.File;
 import java.net.URL;
 import java.util.ArrayList;
-import lombok.SneakyThrows;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import lombok.SneakyThrows;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -53,17 +52,13 @@ class CohortIT extends FacadeIT {
       UUID.fromString("00000000-0000-0000-0000-000000000002");
   private static final UUID TEST_SEMESTER_ID =
       UUID.fromString("00000000-0000-0000-0000-000000000001");
-  private static final UUID TEST_GROUP_ID =
-      UUID.fromString("00000000-0000-0000-0000-000000000003");
+  private static final UUID TEST_GROUP_ID = UUID.fromString("00000000-0000-0000-0000-000000000003");
   private static final UUID TEST_COURSE_ID =
       UUID.fromString("00000000-0000-0000-0000-000000000004");
-  private static final UUID TEST_EXAM_ID =
-      UUID.fromString("00000000-0000-0000-0000-000000000005");
+  private static final UUID TEST_EXAM_ID = UUID.fromString("00000000-0000-0000-0000-000000000005");
 
-  private static final UUID GRAD_USER_ID =
-      UUID.fromString("00000000-0000-0000-0000-000000000010");
-  private static final UUID FAIL_USER_ID =
-      UUID.fromString("00000000-0000-0000-0000-000000000011");
+  private static final UUID GRAD_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000010");
+  private static final UUID FAIL_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000011");
 
   @Autowired TestRestTemplate testRestTemplate;
   @Autowired JwtService jwtService;
@@ -80,8 +75,7 @@ class CohortIT extends FacadeIT {
 
   @SneakyThrows
   private void mockS3() {
-    doAnswer(
-            invocation -> new FileHash(FileHashAlgorithm.SHA256, "fake-hash"))
+    doAnswer(invocation -> new FileHash(FileHashAlgorithm.SHA256, "fake-hash"))
         .when(bucketComponent)
         .upload(any(File.class), anyString());
 
@@ -95,58 +89,86 @@ class CohortIT extends FacadeIT {
         == 0) {
       jdbcTemplate.update(
           "INSERT INTO cohort (id, name, start_year, end_year) VALUES (?, ?, ?, ?)",
-          TEST_COHORT_ID, "Test Cohort", 2024, 2027);
+          TEST_COHORT_ID,
+          "Test Cohort",
+          2024,
+          2027);
     }
     if (jdbcTemplate.queryForObject(
             "SELECT COUNT(*) FROM branch WHERE id = ?", Integer.class, TEST_BRANCH_ID)
         == 0) {
       jdbcTemplate.update(
           "INSERT INTO branch (id, code, name) VALUES (?, ?, ?)",
-          TEST_BRANCH_ID, "CS", "Computer Science");
+          TEST_BRANCH_ID,
+          "CS",
+          "Computer Science");
     }
     if (jdbcTemplate.queryForObject(
             "SELECT COUNT(*) FROM semester WHERE id = ?", Integer.class, TEST_SEMESTER_ID)
         == 0) {
       jdbcTemplate.update(
-          "INSERT INTO semester (id, cohort_id, semester_number, academic_year) VALUES (?, ?, ?, ?)",
-          TEST_SEMESTER_ID, TEST_COHORT_ID, 1, "2024-2025");
+          "INSERT INTO semester (id, cohort_id, semester_number, academic_year) VALUES (?, ?, ?,"
+              + " ?)",
+          TEST_SEMESTER_ID,
+          TEST_COHORT_ID,
+          1,
+          "2024-2025");
     }
     if (jdbcTemplate.queryForObject(
             "SELECT COUNT(*) FROM groupe WHERE id = ?", Integer.class, TEST_GROUP_ID)
         == 0) {
       jdbcTemplate.update(
           "INSERT INTO groupe (id, name, cohort_id, branch_id) VALUES (?, ?, ?, ?)",
-          TEST_GROUP_ID, "G1", TEST_COHORT_ID, TEST_BRANCH_ID);
+          TEST_GROUP_ID,
+          "G1",
+          TEST_COHORT_ID,
+          TEST_BRANCH_ID);
     }
     if (jdbcTemplate.queryForObject(
             "SELECT COUNT(*) FROM \"user\" WHERE id = ?", Integer.class, GRAD_USER_ID)
         == 0) {
       jdbcTemplate.update(
-          "INSERT INTO \"user\" (id, email, password_hash, firstname, lastname, role, must_change_password)"
-              + " VALUES (?, ?, ?, ?, ?, ?, ?)",
-          GRAD_USER_ID, "grad@hei.school", "hash", "Grad", "Student", "STUDENT", false);
+          "INSERT INTO \"user\" (id, email, password_hash, firstname, lastname, role,"
+              + " must_change_password) VALUES (?, ?, ?, ?, ?, ?, ?)",
+          GRAD_USER_ID,
+          "grad@hei.school",
+          "hash",
+          "Grad",
+          "Student",
+          "STUDENT",
+          false);
     }
     if (jdbcTemplate.queryForObject(
             "SELECT COUNT(*) FROM student WHERE user_id = ?", Integer.class, GRAD_USER_ID)
         == 0) {
       jdbcTemplate.update(
           "INSERT INTO student (user_id, reference, status) VALUES (?, ?, ?)",
-          GRAD_USER_ID, "STD24001", "ACTIVE");
+          GRAD_USER_ID,
+          "STD24001",
+          "ACTIVE");
     }
     if (jdbcTemplate.queryForObject(
             "SELECT COUNT(*) FROM \"user\" WHERE id = ?", Integer.class, FAIL_USER_ID)
         == 0) {
       jdbcTemplate.update(
-          "INSERT INTO \"user\" (id, email, password_hash, firstname, lastname, role, must_change_password)"
-              + " VALUES (?, ?, ?, ?, ?, ?, ?)",
-          FAIL_USER_ID, "fail@hei.school", "hash", "Fail", "Student", "STUDENT", false);
+          "INSERT INTO \"user\" (id, email, password_hash, firstname, lastname, role,"
+              + " must_change_password) VALUES (?, ?, ?, ?, ?, ?, ?)",
+          FAIL_USER_ID,
+          "fail@hei.school",
+          "hash",
+          "Fail",
+          "Student",
+          "STUDENT",
+          false);
     }
     if (jdbcTemplate.queryForObject(
             "SELECT COUNT(*) FROM student WHERE user_id = ?", Integer.class, FAIL_USER_ID)
         == 0) {
       jdbcTemplate.update(
           "INSERT INTO student (user_id, reference, status) VALUES (?, ?, ?)",
-          FAIL_USER_ID, "STD24002", "ACTIVE");
+          FAIL_USER_ID,
+          "STD24002",
+          "ACTIVE");
     }
     seedStudentGroupHistory(GRAD_USER_ID);
     seedStudentGroupHistory(FAIL_USER_ID);
@@ -154,15 +176,24 @@ class CohortIT extends FacadeIT {
             "SELECT COUNT(*) FROM course WHERE id = ?", Integer.class, TEST_COURSE_ID)
         == 0) {
       jdbcTemplate.update(
-          "INSERT INTO course (id, semester_id, branch_id, code, title, credits) VALUES (?, ?, ?, ?, ?, ?)",
-          TEST_COURSE_ID, TEST_SEMESTER_ID, TEST_BRANCH_ID, "PROG1", "Programming", 60);
+          "INSERT INTO course (id, semester_id, branch_id, code, title, credits) VALUES (?, ?, ?,"
+              + " ?, ?, ?)",
+          TEST_COURSE_ID,
+          TEST_SEMESTER_ID,
+          TEST_BRANCH_ID,
+          "PROG1",
+          "Programming",
+          60);
     }
     if (jdbcTemplate.queryForObject(
             "SELECT COUNT(*) FROM exam WHERE id = ?", Integer.class, TEST_EXAM_ID)
         == 0) {
       jdbcTemplate.update(
           "INSERT INTO exam (id, course_id, title, weight) VALUES (?, ?, ?, ?)",
-          TEST_EXAM_ID, TEST_COURSE_ID, "Final", 1.0);
+          TEST_EXAM_ID,
+          TEST_COURSE_ID,
+          "Final",
+          1.0);
     }
     seedGrade(TEST_EXAM_ID, GRAD_USER_ID, 15.0);
     seedGrade(TEST_EXAM_ID, FAIL_USER_ID, 8.0);
@@ -176,8 +207,11 @@ class CohortIT extends FacadeIT {
             TEST_GROUP_ID)
         == 0) {
       jdbcTemplate.update(
-          "INSERT INTO student_group_history (id, student_id, group_id, start_date) VALUES (?, ?, ?, CURRENT_DATE)",
-          UUID.randomUUID(), studentUserId, TEST_GROUP_ID);
+          "INSERT INTO student_group_history (id, student_id, group_id, start_date) VALUES (?, ?,"
+              + " ?, CURRENT_DATE)",
+          UUID.randomUUID(),
+          studentUserId,
+          TEST_GROUP_ID);
     }
   }
 
@@ -190,7 +224,10 @@ class CohortIT extends FacadeIT {
         == 0) {
       jdbcTemplate.update(
           "INSERT INTO grade (id, exam_id, student_id, score) VALUES (?, ?, ?, ?)",
-          UUID.randomUUID(), examId, studentUserId, score);
+          UUID.randomUUID(),
+          examId,
+          studentUserId,
+          score);
     }
   }
 
@@ -226,8 +263,12 @@ class CohortIT extends FacadeIT {
         assertTrue(average >= 10.0, "Student " + reference + " must have average >= 10");
       }
 
-      assertTrue(studentReferences.contains("STD24001"), "Grad student (60 credits, avg 15) must be in xlsx");
-      assertTrue(!studentReferences.contains("STD24002"), "Fail student (0 credits, avg 8) must NOT be in xlsx");
+      assertTrue(
+          studentReferences.contains("STD24001"),
+          "Grad student (60 credits, avg 15) must be in xlsx");
+      assertTrue(
+          !studentReferences.contains("STD24002"),
+          "Fail student (0 credits, avg 8) must NOT be in xlsx");
     }
   }
 
