@@ -11,5 +11,7 @@ import org.springframework.stereotype.Repository;
 public interface GradeRepository extends JpaRepository<JGrade, UUID> {
   List<JGrade> findAllByExam_Id(UUID examId);
 
+  List<JGrade> findAllByStudent_Id(UUID studentId);
+
   Optional<JGrade> findByExam_IdAndStudent_Id(UUID examId, UUID studentId);
 }
