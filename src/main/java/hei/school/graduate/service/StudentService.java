@@ -121,7 +121,7 @@ public class StudentService {
 
     var reportTemplate =
         new ReportTemplate(student.getUser(), student.getReference(), academicYear, grades)
-            .toString();
+            .getEmail();
 
     var reportLink = createReport(student.getReference(), academicYear, reportTemplate);
 
