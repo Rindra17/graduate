@@ -86,7 +86,7 @@ public class SecurityConfig {
                     .hasRole("ADMIN")
                     .requestMatchers(HttpMethod.DELETE, "/groups/**")
                     .hasRole("ADMIN")
-                    .requestMatchers(HttpMethod.GET, "/students/*")
+                    .requestMatchers(HttpMethod.GET, "/students/*", "/students/*/group")
                     .access(studentByIdAccessManager())
                     .requestMatchers(HttpMethod.GET, "/admins")
                     .hasRole("ADMIN")
@@ -329,7 +329,9 @@ public class SecurityConfig {
   private static String extractId(HttpServletRequest request, String pathPrefix) {
     var uri = request.getRequestURI();
     if (uri.startsWith(pathPrefix)) {
-      return uri.substring(pathPrefix.length());
+      var rest = uri.substring(pathPrefix.length());
+      var slash = rest.indexOf('/');
+      return slash == -1 ? rest : rest.substring(0, slash);
     }
     return null;
   }
