@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface StudentGroupHistoryRepository extends JpaRepository<JStudentGroupHistory, UUID> {
   List<JStudentGroupHistory> findAllByGroup_IdIn(List<UUID> groupIds);
+
   Optional<JStudentGroupHistory> findByStudent_IdAndEndDateIsNull(UUID studentId);
 
   List<JStudentGroupHistory> findAllByStudent_IdOrderByStartDateAsc(UUID studentId);

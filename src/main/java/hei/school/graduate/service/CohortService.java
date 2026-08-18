@@ -44,7 +44,11 @@ public class CohortService {
     validator.validate(request);
 
     JCohort cohort =
-        JCohort.builder().name(request.getName()).startYear(request.getStartYear()).build();
+        JCohort.builder()
+            .name(request.getName())
+            .startYear(request.getStartYear())
+            .endYear(request.getStartYear() + 3)
+            .build();
 
     JCohort saved = cohortRepository.save(cohort);
     return cohortMapper.toDomain(saved);
