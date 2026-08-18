@@ -86,6 +86,10 @@ public class SecurityConfig {
                     .access(examTeacherAccessManager())
                     .requestMatchers(HttpMethod.DELETE, "/exams/**")
                     .access(examTeacherAccessManager())
+                    .requestMatchers(HttpMethod.POST, "/cohorts")
+                    .hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.GET, "/cohorts/**")
+                    .hasRole("ADMIN")
                     .anyRequest()
                     .authenticated())
         .exceptionHandling(

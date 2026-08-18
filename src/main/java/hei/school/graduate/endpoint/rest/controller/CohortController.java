@@ -40,6 +40,6 @@ public class CohortController {
     return cohortService.getCohortGraduates(id);
   }
 
-  @GetMapping("/{id/graduate/export")
+  @GetMapping("/{id}/graduate/export")
   public void exportCohortGraduates(@PathVariable UUID id) {}
 }
