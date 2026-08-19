@@ -43,14 +43,11 @@ class CohortWebIT extends FacadeIT {
       UUID.fromString("00000000-0000-0000-0000-000000000002");
   private static final UUID TEST_SEMESTER_ID =
       UUID.fromString("00000000-0000-0000-0000-000000000001");
-  private static final UUID TEST_GROUP_ID =
-      UUID.fromString("00000000-0000-0000-0000-000000000003");
+  private static final UUID TEST_GROUP_ID = UUID.fromString("00000000-0000-0000-0000-000000000003");
   private static final UUID TEST_COURSE_ID =
       UUID.fromString("00000000-0000-0000-0000-000000000004");
-  private static final UUID TEST_EXAM_ID =
-      UUID.fromString("00000000-0000-0000-0000-000000000005");
-  private static final UUID GRAD_USER_ID =
-      UUID.fromString("00000000-0000-0000-0000-000000000010");
+  private static final UUID TEST_EXAM_ID = UUID.fromString("00000000-0000-0000-0000-000000000005");
+  private static final UUID GRAD_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000010");
 
   @Autowired TestRestTemplate testRestTemplate;
   @Autowired JwtService jwtService;
@@ -99,7 +96,8 @@ class CohortWebIT extends FacadeIT {
             "SELECT COUNT(*) FROM semester WHERE id = ?", Integer.class, TEST_SEMESTER_ID)
         == 0) {
       jdbcTemplate.update(
-          "INSERT INTO semester (id, cohort_id, semester_number, academic_year) VALUES (?, ?, ?, ?)",
+          "INSERT INTO semester (id, cohort_id, semester_number, academic_year) VALUES (?, ?, ?,"
+              + " ?)",
           TEST_SEMESTER_ID,
           TEST_COHORT_ID,
           1,
@@ -119,7 +117,8 @@ class CohortWebIT extends FacadeIT {
             "SELECT COUNT(*) FROM \"user\" WHERE id = ?", Integer.class, GRAD_USER_ID)
         == 0) {
       jdbcTemplate.update(
-          "INSERT INTO \"user\" (id, email, password_hash, firstname, lastname, role, must_change_password) VALUES (?, ?, ?, ?, ?, ?, ?)",
+          "INSERT INTO \"user\" (id, email, password_hash, firstname, lastname, role,"
+              + " must_change_password) VALUES (?, ?, ?, ?, ?, ?, ?)",
           GRAD_USER_ID,
           "grad@hei.school",
           "hash",
@@ -144,7 +143,8 @@ class CohortWebIT extends FacadeIT {
             TEST_GROUP_ID)
         == 0) {
       jdbcTemplate.update(
-          "INSERT INTO student_group_history (id, student_id, group_id, start_date) VALUES (?, ?, ?, CURRENT_DATE)",
+          "INSERT INTO student_group_history (id, student_id, group_id, start_date) VALUES (?, ?,"
+              + " ?, CURRENT_DATE)",
           UUID.randomUUID(),
           GRAD_USER_ID,
           TEST_GROUP_ID);
@@ -153,7 +153,8 @@ class CohortWebIT extends FacadeIT {
             "SELECT COUNT(*) FROM course WHERE id = ?", Integer.class, TEST_COURSE_ID)
         == 0) {
       jdbcTemplate.update(
-          "INSERT INTO course (id, semester_id, branch_id, code, title, credits) VALUES (?, ?, ?, ?, ?, ?)",
+          "INSERT INTO course (id, semester_id, branch_id, code, title, credits) VALUES (?, ?, ?,"
+              + " ?, ?, ?)",
           TEST_COURSE_ID,
           TEST_SEMESTER_ID,
           TEST_BRANCH_ID,
@@ -213,8 +214,7 @@ class CohortWebIT extends FacadeIT {
         testRestTemplate.exchange(
             WEB_COHORTS_URL, GET, new HttpEntity<>(studentHeaders()), String.class);
 
-    assertEquals(
-        org.springframework.http.HttpStatus.FORBIDDEN, response.getStatusCode());
+    assertEquals(org.springframework.http.HttpStatus.FORBIDDEN, response.getStatusCode());
   }
 
   @Test
@@ -244,8 +244,7 @@ class CohortWebIT extends FacadeIT {
             new HttpEntity<>(adminHeaders()),
             String.class);
 
-    assertEquals(
-        org.springframework.http.HttpStatus.NOT_FOUND, response.getStatusCode());
+    assertEquals(org.springframework.http.HttpStatus.NOT_FOUND, response.getStatusCode());
   }
 
   @Test
@@ -269,8 +268,7 @@ class CohortWebIT extends FacadeIT {
             new HttpEntity<>(studentHeaders()),
             String.class);
 
-    assertEquals(
-        org.springframework.http.HttpStatus.FORBIDDEN, response.getStatusCode());
+    assertEquals(org.springframework.http.HttpStatus.FORBIDDEN, response.getStatusCode());
   }
 
   private HttpHeaders adminHeaders() {

@@ -61,7 +61,8 @@ class CohortServiceTest {
   @Test
   void findById_existingId_returnsCohort() {
     UUID id = UUID.randomUUID();
-    JCohort jCohort = JCohort.builder().id(id).name("Promo 2025").startYear(2022).endYear(2025).build();
+    JCohort jCohort =
+        JCohort.builder().id(id).name("Promo 2025").startYear(2022).endYear(2025).build();
     Cohort expected = new Cohort(id, "Promo 2025", 2022, 2025);
 
     when(cohortRepository.findById(id)).thenReturn(Optional.of(jCohort));
@@ -82,8 +83,7 @@ class CohortServiceTest {
 
     when(cohortRepository.findById(unknownId)).thenReturn(Optional.empty());
 
-    var exception =
-        assertThrows(NotFoundException.class, () -> service.findById(unknownId));
+    var exception = assertThrows(NotFoundException.class, () -> service.findById(unknownId));
 
     assertEquals("cohort " + unknownId + " not found", exception.getMessage());
   }
