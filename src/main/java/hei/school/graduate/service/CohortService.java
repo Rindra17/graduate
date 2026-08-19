@@ -1,18 +1,9 @@
 package hei.school.graduate.service;
 
-import hei.school.graduate.endpoint.rest.controller.dto.CourseGradesResponse;
-import hei.school.graduate.endpoint.rest.controller.dto.GraduateStudentResponse;
-import hei.school.graduate.exception.NotFoundException;
-import hei.school.graduate.repository.CohortRepository;
-import hei.school.graduate.repository.GradeRepository;
-import hei.school.graduate.repository.GroupRepository;
-import hei.school.graduate.repository.SemesterRepository;
-import hei.school.graduate.repository.StudentGroupHistoryRepository;
-import hei.school.graduate.repository.model.JCourse;
-import hei.school.graduate.repository.model.JExam;
 import hei.school.graduate.endpoint.rest.controller.dto.CohortRequest;
 import hei.school.graduate.endpoint.rest.controller.dto.CohortResultResponse;
 import hei.school.graduate.endpoint.rest.controller.dto.CohortStudentResult;
+import hei.school.graduate.endpoint.rest.controller.dto.CourseGradesResponse;
 import hei.school.graduate.endpoint.rest.controller.dto.GraduateStudentResponse;
 import hei.school.graduate.exception.NotFoundException;
 import hei.school.graduate.mapper.CohortMapper;
@@ -20,8 +11,11 @@ import hei.school.graduate.model.Cohort;
 import hei.school.graduate.repository.CohortRepository;
 import hei.school.graduate.repository.GradeRepository;
 import hei.school.graduate.repository.GroupRepository;
+import hei.school.graduate.repository.SemesterRepository;
 import hei.school.graduate.repository.StudentGroupHistoryRepository;
 import hei.school.graduate.repository.model.JCohort;
+import hei.school.graduate.repository.model.JCourse;
+import hei.school.graduate.repository.model.JExam;
 import hei.school.graduate.repository.model.JGrade;
 import hei.school.graduate.repository.model.JGroupe;
 import hei.school.graduate.repository.model.JStudent;
@@ -45,30 +39,12 @@ public class CohortService {
   private static final BigDecimal PASSING_THRESHOLD = BigDecimal.TEN;
 
   private final CohortRepository cohortRepository;
-  private final GroupRepository groupRepository;
-  private final StudentGroupHistoryRepository studentGroupHistoryRepository;
-  private final GradeRepository gradeRepository;
-  private final SemesterRepository semesterRepository;
-
-  public List<GraduateStudentResponse> getCohortGraduates(UUID cohortId) {
-    findCohortOrThrow(cohortId);
-
-    List<String> academicYears = semesterRepository.findAcademicYearsByCohortId(cohortId);
-    List<JStudent> students = findStudentsByCohortId(cohortId);
-
-    return students.stream()
-        .filter(student -> hasEarnedDiploma(student, academicYears))
-        .map(
-            student -> {
-              Double average = computeOverallAverage(student);
-  private static final BigDecimal PASSING_THRESHOLD = BigDecimal.TEN;
-
-  private final CohortRepository cohortRepository;
   private final CohortMapper cohortMapper;
   private final CohortValidator validator;
   private final GroupRepository groupRepository;
   private final StudentGroupHistoryRepository studentGroupHistoryRepository;
   private final GradeRepository gradeRepository;
+  private final SemesterRepository semesterRepository;
 
   public Cohort createCohort(CohortRequest request) {
     validator.validate(request);
@@ -124,12 +100,14 @@ public class CohortService {
         .build();
   }
 
-  public List<GraduateStudentResponse> getCohortGraduates(UUID id) {
-    findCohortOrThrow(id);
+  public List<GraduateStudentResponse> getCohortGraduates(UUID cohortId) {
+    findCohortOrThrow(cohortId);
 
-    List<JStudent> students = findStudentsByCohortId(id);
+    List<String> academicYears = semesterRepository.findAcademicYearsByCohortId(cohortId);
+    List<JStudent> students = findStudentsByCohortId(cohortId);
 
     return students.stream()
+        .filter(student -> hasEarnedDiploma(student, academicYears))
         .map(
             student -> {
               Double average = computeAverage(student);
@@ -205,31 +183,6 @@ public class CohortService {
     return total;
   }
 
-  private Double computeOverallAverage(JStudent student) {
-        .filter(
-            s ->
-                s.getAverage() != null
-                    && BigDecimal.valueOf(s.getAverage()).compareTo(PASSING_THRESHOLD) >= 0)
-        .toList();
-  }
-
-  private List<JStudent> findStudentsByCohortId(UUID cohortId) {
-    List<JGroupe> groups = groupRepository.findAllByCohort_Id(cohortId);
-    if (groups.isEmpty()) {
-      return List.of();
-    }
-
-    List<UUID> groupIds = groups.stream().map(JGroupe::getId).toList();
-    List<JStudentGroupHistory> histories =
-        studentGroupHistoryRepository.findAllByGroup_IdIn(groupIds);
-
-    Map<UUID, JStudent> uniqueStudents = new LinkedHashMap<>();
-    for (JStudentGroupHistory history : histories) {
-      uniqueStudents.putIfAbsent(history.getStudent().getId(), history.getStudent());
-    }
-    return new ArrayList<>(uniqueStudents.values());
-  }
-
   private Double computeAverage(JStudent student) {
     List<JGrade> grades = gradeRepository.findAllByStudent_Id(student.getId());
     if (grades.isEmpty()) {
@@ -271,8 +224,6 @@ public class CohortService {
     return new ArrayList<>(uniqueStudents.values());
   }
 
-  private void findCohortOrThrow(UUID id) {
-    cohortRepository
   private JCohort findCohortOrThrow(UUID id) {
     return cohortRepository
         .findById(id)
