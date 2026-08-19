@@ -116,6 +116,8 @@ public class SecurityConfig {
                     .hasRole("ADMIN")
                     .requestMatchers(HttpMethod.GET, "/cohorts/**")
                     .hasRole("ADMIN")
+                    .requestMatchers("/web/**")
+                    .hasRole("ADMIN")
                     .anyRequest()
                     .authenticated())
         .exceptionHandling(
