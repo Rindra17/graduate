@@ -3,12 +3,15 @@ package hei.school.graduate.endpoint.rest.controller;
 import hei.school.graduate.endpoint.rest.controller.dto.CohortRequest;
 import hei.school.graduate.endpoint.rest.controller.dto.CohortResultResponse;
 import hei.school.graduate.endpoint.rest.controller.dto.GraduateStudentResponse;
+import hei.school.graduate.endpoint.rest.controller.dto.GraduatesDownloadResponse;
 import hei.school.graduate.model.Cohort;
 import hei.school.graduate.service.CohortService;
+import hei.school.graduate.service.GraduateExportService;
 import java.util.List;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class CohortController {
 
   private final CohortService cohortService;
+  private final GraduateExportService graduateExportService;
 
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
@@ -41,5 +45,8 @@ public class CohortController {
   }
 
   @GetMapping("/{id}/graduate/export")
-  public void exportCohortGraduates(@PathVariable UUID id) {}
+  public ResponseEntity<GraduatesDownloadResponse> exportGraduates(@PathVariable UUID id) {
+    String url = graduateExportService.generateGraduatesDownloadUrl(id.toString());
+    return ResponseEntity.ok(GraduatesDownloadResponse.builder().downloadUrl(url).build());
+  }
 }

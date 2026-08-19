@@ -2,6 +2,11 @@ package hei.school.graduate.IT;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
@@ -14,16 +19,28 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 import hei.school.graduate.conf.FacadeIT;
 import hei.school.graduate.endpoint.rest.controller.dto.CohortRequest;
+import hei.school.graduate.file.bucket.BucketComponent;
+import hei.school.graduate.file.hash.FileHash;
+import hei.school.graduate.file.hash.FileHashAlgorithm;
 import hei.school.graduate.model.CustomUserDetails;
 import hei.school.graduate.model.Role;
 import hei.school.graduate.model.User;
 import hei.school.graduate.security.JwtService;
+import java.io.File;
+import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import lombok.SneakyThrows;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -38,20 +55,40 @@ class CohortIT extends FacadeIT {
       UUID.fromString("00000000-0000-0000-0000-000000000000");
   private static final UUID TEST_BRANCH_ID =
       UUID.fromString("00000000-0000-0000-0000-000000000002");
-  private static final UUID TEST_STUDENT_USER_ID =
-      UUID.fromString("00000000-0000-0000-0000-000000000010");
+  private static final UUID TEST_SEMESTER_ID =
+      UUID.fromString("00000000-0000-0000-0000-000000000001");
+  private static final UUID TEST_GROUP_ID = UUID.fromString("00000000-0000-0000-0000-000000000003");
+  private static final UUID TEST_COURSE_ID =
+      UUID.fromString("00000000-0000-0000-0000-000000000004");
+  private static final UUID TEST_EXAM_ID = UUID.fromString("00000000-0000-0000-0000-000000000005");
+
+  private static final UUID GRAD_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000010");
+  private static final UUID FAIL_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000011");
 
   @Autowired TestRestTemplate testRestTemplate;
   @Autowired JwtService jwtService;
   @Autowired JdbcTemplate jdbcTemplate;
 
+  @MockBean BucketComponent bucketComponent;
+
   @BeforeEach
   void setUp() {
     testRestTemplate.getRestTemplate().setRequestFactory(new JdkClientHttpRequestFactory());
-    ensureCohortReferenceData();
+    seedData();
+    mockS3();
   }
 
-  private void ensureCohortReferenceData() {
+  @SneakyThrows
+  private void mockS3() {
+    doAnswer(invocation -> new FileHash(FileHashAlgorithm.SHA256, "fake-hash"))
+        .when(bucketComponent)
+        .upload(any(File.class), anyString());
+
+    when(bucketComponent.presign(anyString(), any()))
+        .thenReturn(new URL("https://fake-s3.example.com/graduates.xlsx"));
+  }
+
+  private void seedData() {
     if (jdbcTemplate.queryForObject(
             "SELECT COUNT(*) FROM cohort WHERE id = ?", Integer.class, TEST_COHORT_ID)
         == 0) {
@@ -60,9 +97,8 @@ class CohortIT extends FacadeIT {
           TEST_COHORT_ID,
           "Test Cohort",
           2024,
-          2026);
+          2027);
     }
-
     if (jdbcTemplate.queryForObject(
             "SELECT COUNT(*) FROM branch WHERE id = ?", Integer.class, TEST_BRANCH_ID)
         == 0) {
@@ -72,60 +108,131 @@ class CohortIT extends FacadeIT {
           "CS",
           "Computer Science");
     }
-
     if (jdbcTemplate.queryForObject(
-            "SELECT COUNT(*) FROM \"user\" WHERE id = ?", Integer.class, TEST_STUDENT_USER_ID)
+            "SELECT COUNT(*) FROM semester WHERE id = ?", Integer.class, TEST_SEMESTER_ID)
+        == 0) {
+      jdbcTemplate.update(
+          "INSERT INTO semester (id, cohort_id, semester_number, academic_year) VALUES (?, ?, ?,"
+              + " ?)",
+          TEST_SEMESTER_ID,
+          TEST_COHORT_ID,
+          1,
+          "2024-2025");
+    }
+    if (jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM groupe WHERE id = ?", Integer.class, TEST_GROUP_ID)
+        == 0) {
+      jdbcTemplate.update(
+          "INSERT INTO groupe (id, name, cohort_id, branch_id) VALUES (?, ?, ?, ?)",
+          TEST_GROUP_ID,
+          "G1",
+          TEST_COHORT_ID,
+          TEST_BRANCH_ID);
+    }
+    if (jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM \"user\" WHERE id = ?", Integer.class, GRAD_USER_ID)
         == 0) {
       jdbcTemplate.update(
           "INSERT INTO \"user\" (id, email, password_hash, firstname, lastname, role,"
               + " must_change_password) VALUES (?, ?, ?, ?, ?, ?, ?)",
-          TEST_STUDENT_USER_ID,
-          "cohortstudent@hei.school",
+          GRAD_USER_ID,
+          "grad@hei.school",
           "hash",
-          "Alice",
-          "Dupont",
+          "Grad",
+          "Student",
           "STUDENT",
           false);
     }
-
     if (jdbcTemplate.queryForObject(
-            "SELECT COUNT(*) FROM student WHERE user_id = ?", Integer.class, TEST_STUDENT_USER_ID)
+            "SELECT COUNT(*) FROM student WHERE user_id = ?", Integer.class, GRAD_USER_ID)
         == 0) {
       jdbcTemplate.update(
           "INSERT INTO student (user_id, reference, status) VALUES (?, ?, ?)",
-          TEST_STUDENT_USER_ID,
-          "STU001",
+          GRAD_USER_ID,
+          "STD24001",
           "ACTIVE");
     }
-
-    List<UUID> existingGroups =
-        jdbcTemplate.queryForList(
-            "SELECT id FROM groupe WHERE cohort_id = ?", UUID.class, TEST_COHORT_ID);
-    UUID groupId;
-    if (existingGroups.isEmpty()) {
-      groupId = UUID.randomUUID();
+    if (jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM \"user\" WHERE id = ?", Integer.class, FAIL_USER_ID)
+        == 0) {
       jdbcTemplate.update(
-          "INSERT INTO groupe (id, name, cohort_id, branch_id) VALUES (?, ?, ?, ?)",
-          groupId,
-          "Group A",
-          TEST_COHORT_ID,
-          TEST_BRANCH_ID);
-    } else {
-      groupId = existingGroups.get(0);
+          "INSERT INTO \"user\" (id, email, password_hash, firstname, lastname, role,"
+              + " must_change_password) VALUES (?, ?, ?, ?, ?, ?, ?)",
+          FAIL_USER_ID,
+          "fail@hei.school",
+          "hash",
+          "Fail",
+          "Student",
+          "STUDENT",
+          false);
     }
+    if (jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM student WHERE user_id = ?", Integer.class, FAIL_USER_ID)
+        == 0) {
+      jdbcTemplate.update(
+          "INSERT INTO student (user_id, reference, status) VALUES (?, ?, ?)",
+          FAIL_USER_ID,
+          "STD24002",
+          "ACTIVE");
+    }
+    seedStudentGroupHistory(GRAD_USER_ID);
+    seedStudentGroupHistory(FAIL_USER_ID);
+    if (jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM course WHERE id = ?", Integer.class, TEST_COURSE_ID)
+        == 0) {
+      jdbcTemplate.update(
+          "INSERT INTO course (id, semester_id, branch_id, code, title, credits) VALUES (?, ?, ?,"
+              + " ?, ?, ?)",
+          TEST_COURSE_ID,
+          TEST_SEMESTER_ID,
+          TEST_BRANCH_ID,
+          "PROG1",
+          "Programming",
+          60);
+    }
+    if (jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM exam WHERE id = ?", Integer.class, TEST_EXAM_ID)
+        == 0) {
+      jdbcTemplate.update(
+          "INSERT INTO exam (id, course_id, title, weight) VALUES (?, ?, ?, ?)",
+          TEST_EXAM_ID,
+          TEST_COURSE_ID,
+          "Final",
+          1.0);
+    }
+    seedGrade(TEST_EXAM_ID, GRAD_USER_ID, 15.0);
+    seedGrade(TEST_EXAM_ID, FAIL_USER_ID, 8.0);
+  }
 
+  private void seedStudentGroupHistory(UUID studentUserId) {
     if (jdbcTemplate.queryForObject(
             "SELECT COUNT(*) FROM student_group_history WHERE student_id = ? AND group_id = ?",
             Integer.class,
-            TEST_STUDENT_USER_ID,
-            groupId)
+            studentUserId,
+            TEST_GROUP_ID)
         == 0) {
       jdbcTemplate.update(
           "INSERT INTO student_group_history (id, student_id, group_id, start_date) VALUES (?, ?,"
               + " ?, CURRENT_DATE)",
           UUID.randomUUID(),
-          TEST_STUDENT_USER_ID,
-          groupId);
+          studentUserId,
+          TEST_GROUP_ID);
+    }
+  }
+
+  private void seedGrade(UUID examId, UUID studentUserId, double score) {
+    if (jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM grade WHERE exam_id = ? AND student_id = ?",
+            Integer.class,
+            examId,
+            studentUserId)
+        == 0) {
+      jdbcTemplate.update(
+          "INSERT INTO grade (id, exam_id, student_id, score) VALUES (?, ?, ?, ?)",
+          UUID.randomUUID(),
+          examId,
+          studentUserId,
+          score);
     }
   }
 
@@ -177,6 +284,17 @@ class CohortIT extends FacadeIT {
   }
 
   @Test
+  void createCohort_studentRole_returns403() {
+    var request = CohortRequest.builder().name("Promo 2025").startYear(2025).build();
+
+    var response =
+        testRestTemplate.exchange(
+            COHORTS_URL, POST, new HttpEntity<>(request, studentHeaders()), Map.class);
+
+    assertEquals(FORBIDDEN, response.getStatusCode());
+  }
+
+  @Test
   void getCohortResults_existingCohort_returns200() {
     var response =
         testRestTemplate.exchange(
@@ -218,6 +336,97 @@ class CohortIT extends FacadeIT {
   }
 
   @Test
+  void getCohortResults_studentRole_returns403() {
+    var response =
+        testRestTemplate.exchange(
+            COHORTS_URL + "/" + TEST_COHORT_ID + "/result",
+            GET,
+            new HttpEntity<>(studentHeaders()),
+            Map.class);
+
+    assertEquals(FORBIDDEN, response.getStatusCode());
+  }
+
+  @SneakyThrows
+  @Test
+  void exportGraduates_xlsxContainsOnlyGraduatesWithAtLeast60Credits() {
+    ArgumentCaptor<File> fileCaptor = ArgumentCaptor.forClass(File.class);
+
+    var response =
+        testRestTemplate.exchange(
+            COHORTS_URL + "/" + TEST_COHORT_ID + "/graduate/export",
+            GET,
+            new HttpEntity<>(adminHeaders()),
+            Map.class);
+
+    assertEquals(OK, response.getStatusCode());
+
+    org.mockito.Mockito.verify(bucketComponent).upload(fileCaptor.capture(), anyString());
+    File uploadedFile = fileCaptor.getValue();
+
+    try (XSSFWorkbook workbook = new XSSFWorkbook(uploadedFile)) {
+      XSSFSheet sheet = workbook.getSheetAt(0);
+
+      int dataRows = sheet.getLastRowNum();
+      assertTrue(dataRows >= 1, "xlsx should contain at least 1 graduate row");
+
+      List<String> studentReferences = new ArrayList<>();
+      for (int i = 1; i <= dataRows; i++) {
+        XSSFRow row = sheet.getRow(i);
+        String reference = row.getCell(1).getStringCellValue();
+        double average = row.getCell(4).getNumericCellValue();
+        studentReferences.add(reference);
+        assertTrue(average >= 10.0, "Student " + reference + " must have average >= 10");
+      }
+
+      assertTrue(
+          studentReferences.contains("STD24001"),
+          "Grad student (60 credits, avg 15) must be in xlsx");
+      assertTrue(
+          !studentReferences.contains("STD24002"),
+          "Fail student (0 credits, avg 8) must NOT be in xlsx");
+    }
+  }
+
+  @Test
+  void exportGraduates_unknownCohortId_returns404() {
+    var randomId = UUID.randomUUID();
+
+    var response =
+        testRestTemplate.exchange(
+            COHORTS_URL + "/" + randomId + "/graduate/export",
+            GET,
+            new HttpEntity<>(adminHeaders()),
+            Map.class);
+
+    assertEquals(NOT_FOUND, response.getStatusCode());
+  }
+
+  @Test
+  void exportGraduates_unauthorized_returns401() {
+    var response =
+        testRestTemplate.exchange(
+            COHORTS_URL + "/" + TEST_COHORT_ID + "/graduate/export",
+            GET,
+            new HttpEntity<>(jsonHeaders()),
+            Map.class);
+
+    assertEquals(UNAUTHORIZED, response.getStatusCode());
+  }
+
+  @Test
+  void exportGraduates_studentRole_returns403() {
+    var response =
+        testRestTemplate.exchange(
+            COHORTS_URL + "/" + TEST_COHORT_ID + "/graduate/export",
+            GET,
+            new HttpEntity<>(studentHeaders()),
+            Map.class);
+
+    assertEquals(FORBIDDEN, response.getStatusCode());
+  }
+
+  @Test
   void getCohortGraduates_existingCohort_returns200() {
     var response =
         testRestTemplate.exchange(
@@ -254,29 +463,6 @@ class CohortIT extends FacadeIT {
             Map.class);
 
     assertEquals(UNAUTHORIZED, response.getStatusCode());
-  }
-
-  @Test
-  void createCohort_studentRole_returns403() {
-    var request = CohortRequest.builder().name("Promo 2025").startYear(2025).build();
-
-    var response =
-        testRestTemplate.exchange(
-            COHORTS_URL, POST, new HttpEntity<>(request, studentHeaders()), Map.class);
-
-    assertEquals(FORBIDDEN, response.getStatusCode());
-  }
-
-  @Test
-  void getCohortResults_studentRole_returns403() {
-    var response =
-        testRestTemplate.exchange(
-            COHORTS_URL + "/" + TEST_COHORT_ID + "/result",
-            GET,
-            new HttpEntity<>(studentHeaders()),
-            Map.class);
-
-    assertEquals(FORBIDDEN, response.getStatusCode());
   }
 
   @Test

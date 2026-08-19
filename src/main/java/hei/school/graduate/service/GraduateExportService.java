@@ -1,0 +1,72 @@
+package hei.school.graduate.service;
+
+import static java.io.File.createTempFile;
+
+import hei.school.graduate.endpoint.rest.controller.dto.GraduateStudentResponse;
+import hei.school.graduate.file.bucket.BucketComponent;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.math.BigDecimal;
+import java.time.Duration;
+import java.util.Comparator;
+import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.SneakyThrows;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.stereotype.Service;
+
+@Service
+@AllArgsConstructor
+public class GraduateExportService {
+
+  private final CohortService cohortService;
+  private final BucketComponent bucketComponent;
+
+  @SneakyThrows
+  public String generateGraduatesDownloadUrl(String cohortId) {
+    List<GraduateStudentResponse> graduates =
+        cohortService.getCohortGraduates(java.util.UUID.fromString(cohortId)).stream()
+            .sorted(Comparator.comparing(GraduateStudentResponse::getAverage).reversed())
+            .toList();
+
+    File file = createTempFile("graduates-" + cohortId, ".xlsx");
+    try (XSSFWorkbook workbook = new XSSFWorkbook();
+        FileOutputStream out = new FileOutputStream(file)) {
+      XSSFSheet sheet = workbook.createSheet("Graduates " + cohortId);
+
+      XSSFRow header = sheet.createRow(0);
+      header.createCell(0).setCellValue("Rank");
+      header.createCell(1).setCellValue("Reference");
+      header.createCell(2).setCellValue("Last name");
+      header.createCell(3).setCellValue("First name");
+      header.createCell(4).setCellValue("General average");
+
+      int rank = 1;
+      int rowIndex = 1;
+      for (GraduateStudentResponse graduate : graduates) {
+        XSSFRow row = sheet.createRow(rowIndex++);
+        row.createCell(0).setCellValue(rank++);
+        row.createCell(1).setCellValue(graduate.getReference());
+        row.createCell(2).setCellValue(graduate.getLastName());
+        row.createCell(3).setCellValue(graduate.getFirstName());
+        row.createCell(4)
+            .setCellValue(
+                BigDecimal.valueOf(graduate.getAverage())
+                    .setScale(2, java.math.RoundingMode.HALF_UP)
+                    .doubleValue());
+      }
+
+      for (int i = 0; i < 5; i++) {
+        sheet.autoSizeColumn(i);
+      }
+
+      workbook.write(out);
+    }
+
+    String bucketKey = "cohorts/" + cohortId + "/graduates.xlsx";
+    bucketComponent.upload(file, bucketKey);
+    return bucketComponent.presign(bucketKey, Duration.ofMinutes(10)).toString();
+  }
+}
