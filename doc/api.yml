@@ -7,8 +7,8 @@ info:
     renvoyé par les endpoints /auth/*.
   version: 1.0.0
 servers:
-  - url: http://localhost:8080
-    description: Serveur local
+  - url: https://ajanuzw54jasayj2rgmyar4l4a0qxeqm.lambda-url.eu-west-3.on.aws
+    description: API déployée (AWS Lambda URL)
 tags:
   - name: Auth
     description: Authentification et gestion des mots de passe
