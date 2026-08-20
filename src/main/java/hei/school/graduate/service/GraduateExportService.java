@@ -11,11 +11,13 @@ import java.util.List;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @AllArgsConstructor
 public class GraduateExportService {
@@ -29,10 +31,9 @@ public class GraduateExportService {
         cohortService.getCohortGraduates(UUID.fromString(cohortId));
 
     File file = createTempFile("graduates-" + cohortId, ".xlsx");
-    try (XSSFWorkbook workbook = new XSSFWorkbook();
-        FileOutputStream out = new FileOutputStream(file)) {
-      XSSFSheet sheet = workbook.createSheet("Graduates " + cohortId);
 
+    try (XSSFWorkbook workbook = new XSSFWorkbook()) {
+      XSSFSheet sheet = workbook.createSheet("Graduates " + cohortId);
       XSSFRow header = sheet.createRow(0);
       header.createCell(0).setCellValue("Rank");
       header.createCell(1).setCellValue("Reference");
@@ -42,6 +43,7 @@ public class GraduateExportService {
 
       int rank = 1;
       int rowIndex = 1;
+      log.info("Found {} graduates for cohort {}", graduates.size(), cohortId);
       for (GraduateStudentResponse graduate : graduates) {
         XSSFRow row = sheet.createRow(rowIndex++);
         row.createCell(0).setCellValue(rank++);
