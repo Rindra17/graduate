@@ -1,0 +1,1714 @@
+openapi: 3.0.3
+info:
+  title: Graduate API
+  description: |
+    API du système Graduate (gestion des étudiants, cours, examens, notes,
+    cohortes et groupes). L'authentification s'effectue par cookie (Set-Cookie)
+    renvoyé par les endpoints /auth/*.
+  version: 1.0.0
+servers:
+  - url: https://ajanuzw54jasayj2rgmyar4l4a0qxeqm.lambda-url.eu-west-3.on.aws
+    description: API déployée (AWS Lambda URL)
+tags:
+  - name: Auth
+    description: Authentification et gestion des mots de passe
+  - name: Admins
+    description: Gestion des administrateurs
+  - name: Teachers
+    description: Gestion des enseignants
+  - name: Students
+    description: Gestion des étudiants
+  - name: Courses
+    description: Gestion des cours
+  - name: Groups
+    description: Gestion des groupes
+  - name: Exams
+    description: Gestion des examens et des notes
+  - name: Cohorts
+    description: Gestion des cohortes et résultats de graduation
+  - name: Health
+    description: Endpoints de vérification de l'état du service
+  - name: Web
+    description: Pages HTML rendues par le serveur
+
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Inscription d'un nouvel utilisateur
+      description: |
+        Crée un utilisateur. Si le mot de passe n'est pas fourni, un mot de
+        passe temporaire est généré. La réponse inclut un cookie de session
+        dans l'en-tête Set-Cookie.
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Utilisateur créé
+          headers:
+            Set-Cookie:
+              description: Cookie de session
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Email déjà utilisé
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Connexion d'un utilisateur
+      description: Authentifie l'utilisateur et renvoie un token ainsi qu'un cookie de session.
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '202':
+          description: Connexion acceptée
+          headers:
+            Set-Cookie:
+              description: Cookie de session
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Identifiants invalides
+
+  /auth/change-password:
+    post:
+      tags: [Auth]
+      summary: Changement du mot de passe
+      description: Change le mot de passe de l'utilisateur authentifié.
+      operationId: changePassword
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          description: Mot de passe modifié
+          headers:
+            Set-Cookie:
+              description: Cookie de session rafraîchi
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Non authentifié
+
+  /admins:
+    get:
+      tags: [Admins]
+      summary: Liste paginée des administrateurs
+      operationId: getAdmins
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/size'
+      responses:
+        '200':
+          description: Liste des administrateurs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminPage'
+
+  /teachers:
+    get:
+      tags: [Teachers]
+      summary: Liste paginée des enseignants
+      operationId: getTeachers
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/size'
+      responses:
+        '200':
+          description: Liste des enseignants
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeacherPage'
+
+  /teachers/{teacherId}:
+    get:
+      tags: [Teachers]
+      summary: Détail d'un enseignant
+      operationId: getTeacher
+      parameters:
+        - $ref: '#/components/parameters/teacherId'
+      responses:
+        '200':
+          description: Enseignant trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeacherResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /students:
+    get:
+      tags: [Students]
+      summary: Liste paginée des étudiants
+      operationId: getStudents
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/size'
+      responses:
+        '200':
+          description: Liste des étudiants
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentPage'
+
+  /students/{studentId}:
+    get:
+      tags: [Students]
+      summary: Détail d'un étudiant
+      operationId: getStudent
+      parameters:
+        - $ref: '#/components/parameters/studentId'
+      responses:
+        '200':
+          description: Étudiant trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /students/{studentId}/group:
+    get:
+      tags: [Students]
+      summary: Groupe actuel d'un étudiant
+      operationId: getStudentGroup
+      parameters:
+        - $ref: '#/components/parameters/studentId'
+      responses:
+        '200':
+          description: Groupe de l'étudiant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Groupe'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /students/{studentId}/group/history:
+    get:
+      tags: [Students]
+      summary: Historique des groupes d'un étudiant
+      operationId: getStudentGroupHistory
+      parameters:
+        - $ref: '#/components/parameters/studentId'
+      responses:
+        '200':
+          description: Historique des transferts de groupe
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GroupTransferResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /students/{studentId}/transfer:
+    post:
+      tags: [Students]
+      summary: Transfert d'un étudiant vers un autre groupe
+      operationId: transferStudent
+      parameters:
+        - $ref: '#/components/parameters/studentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferRequest'
+      responses:
+        '200':
+          description: Transfert effectué
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransferResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /students/{studentId}/grades:
+    get:
+      tags: [Students]
+      summary: Notes d'un étudiant pour une année académique
+      operationId: getStudentGrades
+      parameters:
+        - $ref: '#/components/parameters/studentId'
+        - name: academicYear
+          in: query
+          required: false
+          description: Année académique (ex. 2024-2025). Si absente, toutes les années.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Notes de l'étudiant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentGradesResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /students/{studentId}/grade-report:
+    post:
+      tags: [Students]
+      summary: Demande de bulletin de notes
+      description: Déclenche la génération d'un bulletin de notes pour l'étudiant.
+      operationId: requestGradeReport
+      parameters:
+        - $ref: '#/components/parameters/studentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GradeReportRequest'
+      responses:
+        '201':
+          description: Bulletin demandé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GradeReportResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /courses:
+    get:
+      tags: [Courses]
+      summary: Liste de tous les cours
+      operationId: getAllCourses
+      responses:
+        '200':
+          description: Liste des cours
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Course'
+    post:
+      tags: [Courses]
+      summary: Création d'un cours
+      operationId: createCourse
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CourseRequest'
+      responses:
+        '200':
+          description: Cours créé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Course'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /courses/{id}:
+    get:
+      tags: [Courses]
+      summary: Détail d'un cours
+      operationId: getCourseById
+      parameters:
+        - $ref: '#/components/parameters/courseId'
+      responses:
+        '200':
+          description: Cours trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Course'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Courses]
+      summary: Mise à jour d'un cours
+      operationId: updateCourseById
+      parameters:
+        - $ref: '#/components/parameters/courseId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CourseRequest'
+      responses:
+        '200':
+          description: Cours mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Course'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Courses]
+      summary: Suppression d'un cours
+      operationId: deleteCourseById
+      parameters:
+        - $ref: '#/components/parameters/courseId'
+      responses:
+        '204':
+          description: Cours supprimé
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /courses/{id}/teachers:
+    get:
+      tags: [Courses]
+      summary: Enseignants assignés à un cours
+      operationId: getTeachersByCourseId
+      parameters:
+        - $ref: '#/components/parameters/courseId'
+      responses:
+        '200':
+          description: Liste des enseignants du cours
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Teacher'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [Courses]
+      summary: Assigner un enseignant à un cours
+      operationId: addTeacherToCourse
+      parameters:
+        - $ref: '#/components/parameters/courseId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CourseTeacherRequest'
+      responses:
+        '200':
+          description: Enseignant assigné
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /courses/{id}/teachers/{teacherId}:
+    delete:
+      tags: [Courses]
+      summary: Retirer un enseignant d'un cours
+      operationId: removeTeacherFromCourse
+      parameters:
+        - $ref: '#/components/parameters/courseId'
+        - $ref: '#/components/parameters/teacherId'
+      responses:
+        '204':
+          description: Enseignant retiré
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /courses/{id}/groups:
+    get:
+      tags: [Courses]
+      summary: Groupes assignés à un cours
+      operationId: getGroupsByCourseId
+      parameters:
+        - $ref: '#/components/parameters/courseId'
+      responses:
+        '200':
+          description: Liste des groupes du cours
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Groupe'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [Courses]
+      summary: Assigner un groupe à un cours
+      operationId: addGroupToCourse
+      parameters:
+        - $ref: '#/components/parameters/courseId'
+      requestBody:
+        required: true
+        description: Identifiant (UUID) du groupe à assigner
+        content:
+          application/json:
+            schema:
+              type: string
+              format: uuid
+              example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+      responses:
+        '200':
+          description: Groupe assigné
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /courses/{id}/groups/{groupId}:
+    delete:
+      tags: [Courses]
+      summary: Retirer un groupe d'un cours
+      operationId: removeGroupFromCourse
+      parameters:
+        - $ref: '#/components/parameters/courseId'
+        - $ref: '#/components/parameters/groupId'
+      responses:
+        '204':
+          description: Groupe retiré
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /courses/{id}/exams:
+    get:
+      tags: [Courses]
+      summary: Examens d'un cours
+      operationId: getExamsByCourseId
+      parameters:
+        - $ref: '#/components/parameters/courseId'
+      responses:
+        '200':
+          description: Liste des examens du cours
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Exam'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [Courses]
+      summary: Créer un examen pour un cours
+      operationId: createExam
+      parameters:
+        - $ref: '#/components/parameters/courseId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExamRequest'
+      responses:
+        '201':
+          description: Examen créé
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /groups:
+    post:
+      tags: [Groups]
+      summary: Création d'un groupe
+      operationId: addGroup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupsRequest'
+      responses:
+        '201':
+          description: Groupe créé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Groupe'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /groups/{id}:
+    put:
+      tags: [Groups]
+      summary: Mise à jour d'un groupe
+      operationId: updateGroup
+      parameters:
+        - $ref: '#/components/parameters/groupId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupsRequest'
+      responses:
+        '200':
+          description: Groupe mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Groupe'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Groups]
+      summary: Suppression d'un groupe
+      operationId: deleteGroup
+      parameters:
+        - $ref: '#/components/parameters/groupId'
+      responses:
+        '204':
+          description: Groupe supprimé
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /exams/{id}:
+    get:
+      tags: [Exams]
+      summary: Détail d'un examen
+      operationId: getExam
+      parameters:
+        - $ref: '#/components/parameters/examId'
+      responses:
+        '200':
+          description: Examen trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExamResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Exams]
+      summary: Mise à jour d'un examen
+      operationId: updateExam
+      parameters:
+        - $ref: '#/components/parameters/examId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExamRequest'
+      responses:
+        '200':
+          description: Examen mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExamResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Exams]
+      summary: Suppression d'un examen
+      operationId: deleteExam
+      parameters:
+        - $ref: '#/components/parameters/examId'
+      responses:
+        '204':
+          description: Examen supprimé
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /exams/{id}/grades-students:
+    get:
+      tags: [Exams]
+      summary: Notes de tous les étudiants pour un examen
+      operationId: getGradesByExam
+      parameters:
+        - $ref: '#/components/parameters/examId'
+      responses:
+        '200':
+          description: Notes de l'examen
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Grade'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Exams]
+      summary: Créer ou mettre à jour la note d'un étudiant pour un examen
+      operationId: upsertGradeForExam
+      parameters:
+        - $ref: '#/components/parameters/examId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GradeRequest'
+      responses:
+        '200':
+          description: Note enregistrée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GradeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /exams/{id}/grades-students/{idStudent}:
+    get:
+      tags: [Exams]
+      summary: Note d'un étudiant pour un examen
+      operationId: getStudentGradeForExam
+      parameters:
+        - $ref: '#/components/parameters/examId'
+        - $ref: '#/components/parameters/idStudent'
+      responses:
+        '200':
+          description: Note de l'étudiant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GradeResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /exams/{id}/grades-students/{idStudent}/history:
+    get:
+      tags: [Exams]
+      summary: Historique des notes d'un étudiant pour un examen
+      operationId: getStudentGradeHistoryForExam
+      parameters:
+        - $ref: '#/components/parameters/examId'
+        - $ref: '#/components/parameters/idStudent'
+      responses:
+        '200':
+          description: Historique des notes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GradeHistoryResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /cohorts:
+    post:
+      tags: [Cohorts]
+      summary: Création d'une cohorte
+      operationId: createCohort
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CohortRequest'
+      responses:
+        '201':
+          description: Cohorte créée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cohort'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /cohorts/{id}/result:
+    get:
+      tags: [Cohorts]
+      summary: Résultats de graduation d'une cohorte
+      operationId: getCohortResults
+      parameters:
+        - $ref: '#/components/parameters/cohortId'
+      responses:
+        '200':
+          description: Résultats de la cohorte
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CohortResultResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /cohorts/{id}/graduate:
+    get:
+      tags: [Cohorts]
+      summary: Étudiants diplômés d'une cohorte
+      operationId: getCohortGraduates
+      parameters:
+        - $ref: '#/components/parameters/cohortId'
+      responses:
+        '200':
+          description: Liste des diplômés
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GraduateStudentResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /cohorts/{id}/graduate/export:
+    get:
+      tags: [Cohorts]
+      summary: URL de téléchargement de la liste des diplômés
+      description: Génère une URL signée (presignée) permettant de télécharger la liste des diplômés.
+      operationId: exportGraduates
+      parameters:
+        - $ref: '#/components/parameters/cohortId'
+      responses:
+        '200':
+          description: URL de téléchargement générée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraduatesDownloadResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /ping:
+    get:
+      tags: [Health]
+      summary: Vérification de l'état du service
+      operationId: ping
+      responses:
+        '200':
+          description: Le service répond
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: pong
+
+  /health/db:
+    get:
+      tags: [Health]
+      summary: Vérification de la connexion à la base de données
+      operationId: healthDb
+      responses:
+        '200':
+          description: Base de données accessible
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: OK
+        '500':
+          description: Base de données inaccessible
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: KO
+
+  /health/bucket:
+    get:
+      tags: [Health]
+      summary: Vérification de l'accès au bucket S3
+      operationId: healthBucket
+      responses:
+        '200':
+          description: Upload/Download/Presign OK, renvoie une URL présignée
+          content:
+            text/plain:
+              schema:
+                type: string
+                format: uri
+
+  /health/email:
+    get:
+      tags: [Health]
+      summary: Vérification de l'envoi d'emails
+      operationId: healthEmail
+      parameters:
+        - name: to
+          in: query
+          required: true
+          description: Adresse email de destination des emails de test
+          schema:
+            type: string
+            format: email
+      responses:
+        '200':
+          description: Emails de test envoyés
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: OK
+        '400':
+          description: Adresse email invalide
+
+  /health/event1:
+    get:
+      tags: [Health]
+      summary: Vérification de l'envoi d'événements (type 1)
+      operationId: handleEvent1
+      parameters:
+        - name: nbEvent
+          in: query
+          required: false
+          description: Nombre d'événements à émettre (entre 1 et 500)
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+            maximum: 500
+        - name: waitInSeconds
+          in: query
+          required: false
+          description: Délai avant consommation des événements
+          schema:
+            type: integer
+            default: 2
+      responses:
+        '200':
+          description: Liste des UUID générés
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  format: uuid
+        '400':
+          description: nbEvent hors limites
+
+  /health/event2:
+    get:
+      tags: [Health]
+      summary: Vérification de l'envoi d'événements (type 2)
+      operationId: handleEvent2
+      parameters:
+        - name: nbEvent
+          in: query
+          required: false
+          description: Nombre d'événements à émettre (entre 1 et 500)
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+            maximum: 500
+        - name: waitInSeconds
+          in: query
+          required: false
+          description: Délai avant consommation des événements
+          schema:
+            type: integer
+            default: 2
+      responses:
+        '200':
+          description: Liste des UUID générés
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  format: uuid
+        '400':
+          description: nbEvent hors limites
+
+  /health/event/uuids:
+    post:
+      tags: [Health]
+      summary: Vérifie que des UUID ont bien été traités
+      operationId: checkUuids
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+                format: uuid
+      responses:
+        '200':
+          description: Tous les UUID sont présents
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: OK
+        '500':
+          description: Au moins un UUID est manquant
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: KO
+
+  /web/cohorts:
+    get:
+      tags: [Web]
+      summary: Page HTML listant les cohortes
+      operationId: listCohorts
+      responses:
+        '200':
+          description: Page HTML rendue
+          content:
+            text/html:
+              schema:
+                type: string
+
+  /web/cohorts/{id}/graduates:
+    get:
+      tags: [Web]
+      summary: Page HTML listant les diplômés d'une cohorte
+      operationId: webGraduates
+      parameters:
+        - $ref: '#/components/parameters/cohortId'
+      responses:
+        '200':
+          description: Page HTML rendue
+          content:
+            text/html:
+              schema:
+                type: string
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: session
+
+  parameters:
+    page:
+      name: page
+      in: query
+      required: false
+      description: Numéro de page (0-indexé)
+      schema:
+        type: integer
+        default: 0
+        minimum: 0
+    size:
+      name: size
+      in: query
+      required: false
+      description: Nombre d'éléments par page
+      schema:
+        type: integer
+        default: 10
+        minimum: 1
+    courseId:
+      name: id
+      in: path
+      required: true
+      description: Identifiant du cours
+      schema:
+        type: string
+        format: uuid
+    teacherId:
+      name: teacherId
+      in: path
+      required: true
+      description: Identifiant de l'enseignant
+      schema:
+        type: string
+        format: uuid
+    studentId:
+      name: studentId
+      in: path
+      required: true
+      description: Identifiant de l'étudiant
+      schema:
+        type: string
+        format: uuid
+    idStudent:
+      name: idStudent
+      in: path
+      required: true
+      description: Identifiant de l'étudiant
+      schema:
+        type: string
+        format: uuid
+    groupId:
+      name: groupId
+      in: path
+      required: true
+      description: Identifiant du groupe
+      schema:
+        type: string
+        format: uuid
+    examId:
+      name: id
+      in: path
+      required: true
+      description: Identifiant de l'examen
+      schema:
+        type: string
+        format: uuid
+    cohortId:
+      name: id
+      in: path
+      required: true
+      description: Identifiant de la cohorte
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    BadRequest:
+      description: Requête invalide (champs manquants ou mal formés)
+    NotFound:
+      description: Ressource introuvable
+
+  schemas:
+    Role:
+      type: string
+      enum: [ADMIN, STUDENT, TEACHER]
+
+    User:
+      type: object
+      description: Utilisateur (le mot de passe n'est jamais exposé)
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+        lastName:
+          type: string
+        role:
+          $ref: '#/components/schemas/Role'
+        address:
+          type: string
+        mustChangePassword:
+          type: boolean
+        entranceDateTime:
+          type: string
+          format: date-time
+
+    Admin:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user:
+          $ref: '#/components/schemas/User'
+        reference:
+          type: string
+
+    Teacher:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user:
+          $ref: '#/components/schemas/User'
+        reference:
+          type: string
+
+    Student:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user:
+          $ref: '#/components/schemas/User'
+        reference:
+          type: string
+        status:
+          type: string
+
+    Branch:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+
+    Cohort:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        startYear:
+          type: integer
+        endYear:
+          type: integer
+
+    Semester:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        cohort:
+          $ref: '#/components/schemas/Cohort'
+        semesterNumber:
+          type: integer
+        academicYear:
+          type: string
+
+    Groupe:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        cohort:
+          $ref: '#/components/schemas/Cohort'
+        branch:
+          $ref: '#/components/schemas/Branch'
+
+    Course:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        semester:
+          $ref: '#/components/schemas/Semester'
+        branch:
+          $ref: '#/components/schemas/Branch'
+        code:
+          type: string
+        title:
+          type: string
+        credits:
+          type: integer
+
+    Exam:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        course:
+          $ref: '#/components/schemas/Course'
+        title:
+          type: string
+        weight:
+          type: number
+          format: bigdecimal
+        examDate:
+          type: string
+          format: date
+
+    Grade:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        student:
+          $ref: '#/components/schemas/Student'
+        exam:
+          $ref: '#/components/schemas/Exam'
+        score:
+          type: number
+          format: bigdecimal
+
+    RegisterRequest:
+      type: object
+      required: [firstName, lastName, email, role]
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+        address:
+          type: string
+        role:
+          $ref: '#/components/schemas/Role'
+        password:
+          type: string
+          description: Si absent, un mot de passe temporaire est généré
+
+    RegisterResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        temporaryPassword:
+          type: string
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    LoginResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        token:
+          type: string
+
+    ChangePasswordRequest:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword:
+          type: string
+        newPassword:
+          type: string
+
+    AdminPage:
+      type: object
+      properties:
+        admins:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminResponse'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    AdminResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+        reference:
+          type: string
+
+    TeacherPage:
+      type: object
+      properties:
+        teachers:
+          type: array
+          items:
+            $ref: '#/components/schemas/TeacherResponse'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    TeacherResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+        reference:
+          type: string
+
+    StudentPage:
+      type: object
+      properties:
+        students:
+          type: array
+          items:
+            $ref: '#/components/schemas/StudentResponse'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    StudentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+        reference:
+          type: string
+        status:
+          type: string
+
+    TransferRequest:
+      type: object
+      required: [groupId]
+      properties:
+        groupId:
+          type: string
+          format: uuid
+        reason:
+          type: string
+
+    TransferResponse:
+      type: object
+      properties:
+        studentId:
+          type: string
+          format: uuid
+        previousGroupId:
+          type: string
+          format: uuid
+        newGroupId:
+          type: string
+          format: uuid
+        transferDate:
+          type: string
+          format: date
+        reason:
+          type: string
+
+    GroupTransferResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        studentId:
+          type: string
+          format: uuid
+        previousGroupId:
+          type: string
+          format: uuid
+        previousGroupName:
+          type: string
+        newGroupId:
+          type: string
+          format: uuid
+        newGroupName:
+          type: string
+        transferDate:
+          type: string
+          format: date
+        reason:
+          type: string
+
+    CourseGradesResponse:
+      type: object
+      properties:
+        courseId:
+          type: string
+          format: uuid
+        courseCode:
+          type: string
+        courseTitle:
+          type: string
+        credits:
+          type: integer
+        average:
+          type: number
+          format: bigdecimal
+
+    StudentGradesResponse:
+      type: object
+      properties:
+        courses:
+          type: array
+          items:
+            $ref: '#/components/schemas/CourseGradesResponse'
+        yearAverage:
+          type: number
+          format: bigdecimal
+        creditEarned:
+          type: integer
+
+    GradeReportRequest:
+      type: object
+      properties:
+        academicYear:
+          type: string
+
+    GradeReportResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        studentId:
+          type: string
+          format: uuid
+        academicYear:
+          type: string
+
+    CourseRequest:
+      type: object
+      properties:
+        semesterId:
+          type: string
+          format: uuid
+        branchId:
+          type: string
+          format: uuid
+        code:
+          type: string
+        title:
+          type: string
+        credits:
+          type: integer
+
+    CourseTeacherRequest:
+      type: object
+      required: [teacherId]
+      properties:
+        teacherId:
+          type: string
+          format: uuid
+
+    ExamRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        weight:
+          type: number
+          format: bigdecimal
+        examDate:
+          type: string
+          format: date
+
+    ExamResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        courseName:
+          type: string
+        title:
+          type: string
+        weight:
+          type: number
+          format: bigdecimal
+        examDate:
+          type: string
+          format: date
+
+    GradeRequest:
+      type: object
+      required: [studentId, score]
+      properties:
+        studentId:
+          type: string
+          format: uuid
+        score:
+          type: number
+          format: bigdecimal
+        reason:
+          type: string
+
+    GradeResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        studentId:
+          type: string
+          format: uuid
+        examId:
+          type: string
+          format: uuid
+        score:
+          type: number
+          format: bigdecimal
+
+    GradeHistoryEntry:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        grade:
+          type: number
+          format: bigdecimal
+        reason:
+          type: string
+        modificationDate:
+          type: string
+          format: date-time
+
+    GradeHistoryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        examId:
+          type: string
+          format: uuid
+        currentScore:
+          type: number
+          format: bigdecimal
+        grades:
+          type: array
+          items:
+            $ref: '#/components/schemas/GradeHistoryEntry'
+
+    GroupsRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        cohortId:
+          type: string
+          format: uuid
+        branchId:
+          type: string
+          format: uuid
+
+    CohortRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        startYear:
+          type: integer
+
+    CohortStudentResult:
+      type: object
+      properties:
+        studentId:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+        reference:
+          type: string
+        status:
+          type: string
+        average:
+          type: number
+          format: double
+
+    CohortResultResponse:
+      type: object
+      properties:
+        cohortId:
+          type: string
+        cohortName:
+          type: string
+        totalStudents:
+          type: integer
+        graduates:
+          type: integer
+        failed:
+          type: integer
+        students:
+          type: array
+          items:
+            $ref: '#/components/schemas/CohortStudentResult'
+
+    GraduateStudentResponse:
+      type: object
+      properties:
+        studentId:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+        reference:
+          type: string
+        average:
+          type: number
+          format: double
+
+    GraduatesDownloadResponse:
+      type: object
+      properties:
+        downloadUrl:
+          type: string
+          format: uri
