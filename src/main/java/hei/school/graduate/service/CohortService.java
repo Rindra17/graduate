@@ -24,6 +24,7 @@ import hei.school.graduate.service.validator.CohortValidator;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -124,6 +125,7 @@ public class CohortService {
                   .average(average)
                   .build();
             })
+        .sorted(Comparator.comparing(GraduateStudentResponse::getAverage).reversed())
         .toList();
   }
 
