@@ -46,7 +46,6 @@ public class CohortService {
   private final StudentGroupHistoryRepository studentGroupHistoryRepository;
   private final GradeRepository gradeRepository;
   private final SemesterRepository semesterRepository;
-  private final StudentService studentService;
 
   public List<Cohort> listAll() {
     return cohortRepository.findAll().stream().map(cohortMapper::toDomain).toList();
