@@ -46,6 +46,14 @@ public class CohortService {
   private final GradeRepository gradeRepository;
   private final SemesterRepository semesterRepository;
 
+  public List<Cohort> listAll() {
+    return cohortRepository.findAll().stream().map(cohortMapper::toDomain).toList();
+  }
+
+  public Cohort findById(UUID id) {
+    return cohortMapper.toDomain(findCohortOrThrow(id));
+  }
+
   public Cohort createCohort(CohortRequest request) {
     validator.validate(request);
 

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cohorts</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; color: #333; }
+        .container { max-width: 960px; margin: 40px auto; padding: 0 20px; }
+        h1 { text-align: center; margin-bottom: 30px; color: #1a1a2e; font-size: 2rem; }
+        table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+        thead { background: #1a1a2e; color: #fff; }
+        th, td { padding: 14px 20px; text-align: left; }
+        th { font-weight: 600; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.5px; }
+        tbody tr { border-bottom: 1px solid #eee; transition: background 0.2s; }
+        tbody tr:hover { background: #f5f7fa; }
+        td a { color: #2563eb; text-decoration: none; font-weight: 500; }
+        td a:hover { text-decoration: underline; }
+        .btn { display: inline-block; padding: 8px 18px; border-radius: 6px; text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: background 0.2s; }
+        .btn-primary { background: #2563eb; color: #fff; }
+        .btn-primary:hover { background: #1d4ed8; }
+        .empty { text-align: center; padding: 40px; color: #888; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Cohorts</h1>
+
+    <div th:if="${#lists.isEmpty(cohorts)}" class="empty">
+        <p>No cohorts found.</p>
+    </div>
+
+    <table th:unless="${#lists.isEmpty(cohorts)}">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Start Year</th>
+                <th>End Year</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="cohort : ${cohorts}">
+                <td th:text="${cohort.name}"></td>
+                <td th:text="${cohort.startYear}"></td>
+                <td th:text="${cohort.endYear}"></td>
+                <td>
+                    <a th:href="@{/web/cohorts/{id}/graduates(id=${cohort.id})}" class="btn btn-primary">
+                        Graduates
+                    </a>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>

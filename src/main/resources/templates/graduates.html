@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graduated Students</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; color: #333; }
+        .container { max-width: 960px; margin: 40px auto; padding: 0 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        h1 { color: #1a1a2e; font-size: 1.8rem; }
+        .btn { display: inline-block; padding: 10px 22px; border-radius: 6px; text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: background 0.2s; cursor: pointer; border: none; }
+        .btn-back { background: #6b7280; color: #fff; }
+        .btn-back:hover { background: #4b5563; }
+        .btn-download { background: #059669; color: #fff; }
+        .btn-download:hover { background: #047857; }
+        table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+        thead { background: #1a1a2e; color: #fff; }
+        th, td { padding: 14px 20px; text-align: left; }
+        th { font-weight: 600; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.5px; }
+        tbody tr { border-bottom: 1px solid #eee; transition: background 0.2s; }
+        tbody tr:hover { background: #f5f7fa; }
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; }
+        .badge-graduated { background: #d1fae5; color: #065f46; }
+        .empty { text-align: center; padding: 40px; color: #888; background: #fff; border-radius: 8px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1 th:text="'Graduates - ' + ${cohort.name}">Graduates</h1>
+        <div>
+            <a th:href="@{/web/cohorts}" class="btn btn-back">Back</a>
+            <a th:href="@{/cohorts/{id}/graduate/export(id=${cohortId})}" class="btn btn-download" id="downloadBtn">
+                Download Excel
+            </a>
+        </div>
+    </div>
+
+    <div th:if="${#lists.isEmpty(graduates)}" class="empty">
+        <p>No graduates for this cohort.</p>
+    </div>
+
+    <table th:unless="${#lists.isEmpty(graduates)}">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Last Name</th>
+                <th>First Name</th>
+                <th>Email</th>
+                <th>Reference</th>
+                <th>Average</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="grad, stat : ${graduates}">
+                <td th:text="${stat.index + 1}"></td>
+                <td th:text="${grad.lastName}"></td>
+                <td th:text="${grad.firstName}"></td>
+                <td th:text="${grad.email}"></td>
+                <td th:text="${grad.reference}"></td>
+                <td>
+                    <span class="badge badge-graduated" th:text="${grad.average != null} ? ${#numbers.formatDecimal(grad.average, 1, 2)} : 'N/A'"></span>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<script>
+    document.getElementById('downloadBtn').addEventListener('click', async function(e) {
+        e.preventDefault();
+        var url = this.getAttribute('href');
+        try {
+            var response = await fetch(url);
+            var data = await response.json();
+            if (data.downloadUrl) {
+                window.location.href = data.downloadUrl;
+            }
+        } catch (err) {
+            alert('Download error');
+        }
+    });
+</script>
+</body>
+</html>
