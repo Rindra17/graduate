@@ -1,7 +1,6 @@
 package hei.school.graduate.endpoint.web;
 
 import hei.school.graduate.service.CohortService;
-import hei.school.graduate.service.GraduateExportService;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -16,7 +15,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 public class CohortWebController {
 
   private final CohortService cohortService;
-  private final GraduateExportService graduateExportService;
 
   @GetMapping
   public String listCohorts(Model model) {

@@ -6,10 +6,9 @@ import hei.school.graduate.endpoint.rest.controller.dto.GraduateStudentResponse;
 import hei.school.graduate.file.bucket.BucketComponent;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.math.BigDecimal;
 import java.time.Duration;
-import java.util.Comparator;
 import java.util.List;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import org.apache.poi.xssf.usermodel.XSSFRow;
@@ -27,9 +26,7 @@ public class GraduateExportService {
   @SneakyThrows
   public String generateGraduatesDownloadUrl(String cohortId) {
     List<GraduateStudentResponse> graduates =
-        cohortService.getCohortGraduates(java.util.UUID.fromString(cohortId)).stream()
-            .sorted(Comparator.comparing(GraduateStudentResponse::getAverage).reversed())
-            .toList();
+        cohortService.getCohortGraduates(UUID.fromString(cohortId));
 
     File file = createTempFile("graduates-" + cohortId, ".xlsx");
     try (XSSFWorkbook workbook = new XSSFWorkbook();
@@ -51,18 +48,16 @@ public class GraduateExportService {
         row.createCell(1).setCellValue(graduate.getReference());
         row.createCell(2).setCellValue(graduate.getLastName());
         row.createCell(3).setCellValue(graduate.getFirstName());
-        row.createCell(4)
-            .setCellValue(
-                BigDecimal.valueOf(graduate.getAverage())
-                    .setScale(2, java.math.RoundingMode.HALF_UP)
-                    .doubleValue());
+        row.createCell(4).setCellValue(graduate.getAverage());
       }
 
       for (int i = 0; i < 5; i++) {
         sheet.autoSizeColumn(i);
       }
 
-      workbook.write(out);
+      try (FileOutputStream fileOut = new FileOutputStream(file)) {
+        workbook.write(fileOut);
+      }
     }
 
     String bucketKey = "cohorts/" + cohortId + "/graduates.xlsx";
