@@ -62,6 +62,7 @@ public class CohortService {
 
   public CohortResultResponse getCohortResults(UUID id) {
     JCohort cohort = findCohortOrThrow(id);
+    List<String> academicYears = semesterRepository.findAcademicYearsByCohortId(id);
 
     List<JStudent> students = findStudentsByCohortId(id);
 
@@ -83,12 +84,7 @@ public class CohortService {
             .toList();
 
     long graduates =
-        studentResults.stream()
-            .filter(
-                s ->
-                    s.getAverage() != null
-                        && BigDecimal.valueOf(s.getAverage()).compareTo(PASSING_THRESHOLD) >= 0)
-            .count();
+        students.stream().filter(student -> hasEarnedDiploma(student, academicYears)).count();
 
     return CohortResultResponse.builder()
         .cohortId(cohort.getId().toString())
