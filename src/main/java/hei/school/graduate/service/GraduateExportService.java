@@ -11,11 +11,13 @@ import java.util.List;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @AllArgsConstructor
 public class GraduateExportService {
@@ -41,6 +43,7 @@ public class GraduateExportService {
 
       int rank = 1;
       int rowIndex = 1;
+      log.info("Found {} graduates for cohort {}", graduates.size(), cohortId);
       for (GraduateStudentResponse graduate : graduates) {
         XSSFRow row = sheet.createRow(rowIndex++);
         row.createCell(0).setCellValue(rank++);
