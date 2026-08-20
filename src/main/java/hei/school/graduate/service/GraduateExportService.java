@@ -29,10 +29,9 @@ public class GraduateExportService {
         cohortService.getCohortGraduates(UUID.fromString(cohortId));
 
     File file = createTempFile("graduates-" + cohortId, ".xlsx");
-    try (XSSFWorkbook workbook = new XSSFWorkbook();
-        FileOutputStream out = new FileOutputStream(file)) {
-      XSSFSheet sheet = workbook.createSheet("Graduates " + cohortId);
 
+    try (XSSFWorkbook workbook = new XSSFWorkbook()) {
+      XSSFSheet sheet = workbook.createSheet("Graduates " + cohortId);
       XSSFRow header = sheet.createRow(0);
       header.createCell(0).setCellValue("Rank");
       header.createCell(1).setCellValue("Reference");
